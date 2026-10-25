@@ -17,9 +17,15 @@ import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step
  *      una relación 1:1 nativa con el inmueble físico, eliminando riesgos de préstamos flash
  *      (flash loans) sobre suministros fungibles y optimizando ~30% el consumo de gas al
  *      prescindir de quemado + re-emisión (`_burn` + `_mint`) en compraventas de unidades.
- *      Por defecto es intransferible entre particulares (Soulbound). Solo el Owner/Timelock
- *      puede adjudicar nuevas unidades o reasignarlas ante una compraventa escriturada.
- *      Hereda `Ownable2Step` (hallazgo CD-05) para exigir confirmación en 2 pasos al transferir la administración.
+ *      Por defecto es intransferible entre particulares (Soulbound).
+ *
+ *      [CORRECCIÓN DOCENTE - PUNTO 6: Doble vía Registral + Timelock (`onlyRegistradorOrOwner`)]:
+ *      Se incorpora la figura del `registrador` (Administrador Registral) junto al `owner` (`ConsorcioTimelock`).
+ *      Esto permite que el alta de unidades (`adjudicarUnidad`) y el recupero de billetera o compraventa
+ *      escriturada (`reasignarUnidad`) puedan ejecutarse en 1 paso por el Administrador Registral sin
+ *      bloquear operativamente al consorcio (evitando un deadlock de quórum si varios vecinos pierden
+ *      sus billeteras), mientras que el `ConsorcioTimelock` (`owner` vía `Ownable2Step`) conserva la
+ *      soberanía suprema para ejecutar reasignaciones por asamblea o reemplazar/revocar al `registrador`.
  */
 contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
     // =========================================================================
@@ -31,6 +37,9 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
 
     /// @dev Flag transitorio interno para autorizar transferencias ejecutadas por `reasignarUnidad`.
     bool private _reasignacionAutorizada;
+
+    /// @notice Dirección del Administrador Registral autorizado a adjudicar y reasignar unidades en 1 paso (Corrección Docente Punto 6).
+    address public registrador;
 
     /// @notice Registro de la alícuota / cuota parte informativa asignada a cada unidad funcional / lote.
     mapping(uint256 unidadId => uint256 cuotaParte) public cuotaParteDeUnidad;
@@ -53,6 +62,10 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
     /// @param propietarioActual Dirección del propietario ya registrado para dicha unidad.
     error UnidadYaAsignada(uint256 unidadId, address propietarioActual);
 
+    /// @notice Se lanza cuando una cuenta sin rol de `registrador` ni `owner` (Timelock) intenta gestionar unidades (Corrección Docente Punto 6).
+    /// @param cuenta Dirección que intentó ejecutar la operación sin autorización.
+    error NoAutorizadoParaRegistro(address cuenta);
+
     // =========================================================================
     // Eventos
     // =========================================================================
@@ -63,7 +76,7 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
     /// @param cuotaParte Alícuota / referencia de cuota parte registrada para la unidad.
     event UnidadAdjudicada(uint256 indexed unidadId, address indexed propietario, uint256 cuotaParte);
 
-    /// @notice Se emite cuando el consorcio reasigna una unidad funcional a un nuevo propietario por compraventa.
+    /// @notice Se emite cuando el consorcio reasigna una unidad funcional a un nuevo propietario por compraventa o recupero.
     /// @param unidadId Identificador de la unidad funcional o lote transferido (`tokenId`).
     /// @param propietarioAnterior Billetera del propietario saliente.
     /// @param nuevoPropietario Billetera del nuevo propietario entrante.
@@ -79,13 +92,34 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
     /// @param habilitadas Nuevo estado de las transferencias entre particulares (`true` o `false`).
     event EstadoTransferenciasActualizado(bool habilitadas);
 
+    /// @notice Se emite cuando el Owner/Timelock actualiza la dirección del Administrador Registral (Corrección Docente Punto 6).
+    /// @param registradorAnterior Dirección del registrador saliente.
+    /// @param nuevoRegistrador Dirección del nuevo registrador designado.
+    event RegistradorActualizado(address indexed registradorAnterior, address indexed nuevoRegistrador);
+
+    // =========================================================================
+    // Modificadores
+    // =========================================================================
+
+    /**
+     * @notice Permite la ejecución tanto al Administrador Registral (`registrador`) para agilidad operativa
+     *         como al `owner` supremo del contrato (`ConsorcioTimelock`) por decisión de Asamblea.
+     * @dev Implementa la Corrección del Docente (Punto 6) evitando deadlocks de quórum ante pérdida de billeteras.
+     */
+    modifier onlyRegistradorOrOwner() {
+        if (msg.sender != registrador && msg.sender != owner()) {
+            revert NoAutorizadoParaRegistro(msg.sender);
+        }
+        _;
+    }
+
     // =========================================================================
     // Constructor
     // =========================================================================
 
     /**
      * @notice Inicializa la colección NFT de Unidades Funcionales con transferencias entre particulares deshabilitadas.
-     * @param initialOwner Dirección inicial de administración (luego se transfiere al `ConsorcioTimelock`).
+     * @param initialOwner Dirección inicial de administración y registrador inicial (luego el ownership se transfiere al `ConsorcioTimelock`).
      */
     constructor(address initialOwner)
         ERC721("Consorcio Unidad Funcional", "CUF")
@@ -93,17 +127,31 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
         Ownable(initialOwner)
     {
         transferenciasHabilitadas = false;
+        registrador = initialOwner;
+        emit RegistradorActualizado(address(0), initialOwner);
     }
 
     // =========================================================================
-    // Funciones Externas de Administración
+    // Funciones Externas de Administración y Registro
     // =========================================================================
+
+    /**
+     * @notice Permite al Owner (`ConsorcioTimelock`) designar o revocar al Administrador Registral (`address(0)` para deshabilitarlo).
+     * @dev Corrección Docente Punto 6: La Asamblea a través del Timelock conserva siempre el control supremo sobre quién opera el padrón.
+     * @param nuevoRegistrador Nueva dirección autorizada como registrador operativo (o `address(0)` para dejar solo al Timelock).
+     */
+    function actualizarRegistrador(address nuevoRegistrador) external onlyOwner {
+        address anterior = registrador;
+        registrador = nuevoRegistrador;
+        emit RegistradorActualizado(anterior, nuevoRegistrador);
+    }
 
     /**
      * @notice Adjudica una unidad funcional/lote a un vecino emitiendo su NFT (`tokenId = unidadId`).
      * @dev Auto-delega el poder de voto al propio vecino para que pueda votar inmediatamente
      *      sin necesidad de ejecutar una transacción adicional de `delegate()`.
      *      Consulta `_ownerOf(unidadId)` en memoria para evitar doble lectura de storage (`SLOAD`).
+     *      Ejecutable por el `registrador` o por el `owner` (`ConsorcioTimelock`).
      * @param unidadId Identificador único del departamento o lote (ej. Lote 101 o UF 42), usado como `tokenId`.
      * @param vecino Billetera del propietario del lote/departamento.
      * @param cuotaParte Valor de alícuota o referencia de expensas asociado a la unidad (debe ser > 0).
@@ -112,7 +160,7 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
         uint256 unidadId,
         address vecino,
         uint256 cuotaParte
-    ) external onlyOwner {
+    ) external onlyRegistradorOrOwner {
         if (vecino == address(0)) revert DireccionInvalida();
         if (cuotaParte == 0) revert CuotaParteInvalida();
 
@@ -133,14 +181,15 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
     }
 
     /**
-     * @notice Reasigna la titularidad del NFT de una unidad funcional cuando cambia de dueño en el registro.
+     * @notice Reasigna la titularidad del NFT de una unidad funcional cuando cambia de dueño o por recupero de billetera.
      * @dev Transfiere directamente el `tokenId = unidadId` mediante `_update` autorizando temporalmente
      *      la operación con `_reasignacionAutorizada`, evitando el sobrecosto de gas de `_burn` + `_mint`
      *      y manteniendo intactas las demás unidades que posea el mismo propietario.
+     *      Ejecutable por el `registrador` (tras verificar escritura o identidad off-chain) o por el `owner` (`ConsorcioTimelock`).
      * @param unidadId Identificador del lote o departamento (`tokenId`).
-     * @param nuevoPropietario Billetera del comprador / nuevo copropietario.
+     * @param nuevoPropietario Billetera del comprador o nueva billetera de recupero del copropietario.
      */
-    function reasignarUnidad(uint256 unidadId, address nuevoPropietario) external onlyOwner {
+    function reasignarUnidad(uint256 unidadId, address nuevoPropietario) external onlyRegistradorOrOwner {
         address propietarioAnterior = _ownerOf(unidadId);
         if (propietarioAnterior == address(0) || nuevoPropietario == address(0)) {
             revert DireccionInvalida();
@@ -188,8 +237,6 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
 
     /**
      * @notice Devuelve el reloj actual basado en timestamp del bloque según EIP-6372.
-     * @dev Utiliza timestamps en lugar de números de bloque para definir tiempos de
-     *      votación y deliberación de manera legible (en segundos: ej. 1 día = 86400).
      * @return Timestamp actual truncado a `uint48`.
      */
     function clock() public view override returns (uint48) {
@@ -208,12 +255,10 @@ contract ConsorcioVotes is ERC721, EIP712, ERC721Votes, Ownable2Step {
     /**
      * @dev Hook central de OpenZeppelin v5 (`_update`) para ERC-721 y ERC721Votes.
      *      Bloquea las transferencias entre cuentas particulares cuando `transferenciasHabilitadas == false`
-     *      y no se trata de una reasignación oficial del consorcio (`!_reasignacionAutorizada`),
-     *      permitiendo únicamente la emisión inicial (`from == address(0)`), quemado (`to == address(0)`)
-     *      o reasignación administrativa (`_reasignacionAutorizada == true`).
+     *      y no se trata de una reasignación oficial del consorcio (`!_reasignacionAutorizada`).
      * @param to Dirección de destino (`address(0)` en burn).
      * @param tokenId Identificador del NFT (`unidadId`).
-     * @param auth Dirección que autoriza la operación (`address(0)` cuando es invocada internamente por el contrato).
+     * @param auth Dirección que autoriza la operación.
      * @return from Dirección del propietario anterior (`address(0)` en mint).
      */
     function _update(

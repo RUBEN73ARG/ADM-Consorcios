@@ -1,0 +1,71 @@
+ +  ConsorcioGovernor (Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction, GovernorTimelockControl)
+    - [Pub] <Constructor> #
+       - modifiers: Governor,GovernorSettings,GovernorVotes,GovernorVotesQuorumFraction,GovernorTimelockControl
+    - [Pub] votingDelay
+    - [Pub] votingPeriod
+    - [Pub] quorum
+    - [Pub] state
+    - [Pub] proposalNeedsQueuing
+    - [Pub] proposalThreshold
+    - [Int] _queueOperations #
+    - [Int] _executeOperations #
+    - [Int] _cancel #
+    - [Int] _executor
+
+ +  ConsorcioObras (ReentrancyGuard, Pausable)
+    - [Pub] <Constructor> #
+    - [Ext] pausarVault #
+       - modifiers: onlyTimelock
+    - [Ext] reanudarVault #
+       - modifiers: onlyTimelock
+    - [Ext] pagarExpensas ($)
+       - modifiers: whenNotPaused
+    - [Ext] <Receive Ether> ($)
+    - [Ext] aprobarObraYLiberarHito1 #
+       - modifiers: onlyTimelock,whenNotPaused,nonReentrant
+    - [Ext] crearObra #
+       - modifiers: onlyTimelock,whenNotPaused
+    - [Ext] liberarHito1 #
+       - modifiers: onlyTimelock,whenNotPaused,nonReentrant
+    - [Ext] rendirCuentasHito1 #
+       - modifiers: whenNotPaused
+    - [Ext] rendirCuentasHito2 #
+       - modifiers: whenNotPaused
+    - [Ext] liberarHito2 #
+       - modifiers: onlyTimelock,whenNotPaused,nonReentrant
+    - [Ext] liberarHito3Final #
+       - modifiers: onlyTimelock,whenNotPaused,nonReentrant
+    - [Ext] cancelarObra #
+       - modifiers: onlyTimelock
+    - [Pub] saldoLibreDisponible
+    - [Ext] calcularDesgloseHitos
+    - [Int] _validarObraExistente
+    - [Int] _crearObraInterna #
+    - [Int] _liberarHito1Interno #
+    - [Int] _transferirETH #
+
+ +  ConsorcioTimelock (TimelockController)
+    - [Pub] <Constructor> #
+       - modifiers: TimelockController
+    - [Ext] configurarYSellarGobernanza #
+       - modifiers: onlyRole
+
+ +  ConsorcioVotes (ERC721, EIP712, ERC721Votes, Ownable2Step)
+    - [Pub] <Constructor> #
+       - modifiers: ERC721,EIP712,Ownable
+    - [Ext] adjudicarUnidad #
+       - modifiers: onlyOwner
+    - [Ext] reasignarUnidad #
+       - modifiers: onlyOwner
+    - [Ext] configurarTransferencias #
+       - modifiers: onlyOwner
+    - [Ext] propietarioDeUnidad
+    - [Pub] clock
+    - [Pub] CLOCK_MODE
+    - [Int] _update #
+    - [Int] _increaseBalance #
+
+
+ ($) = payable function
+ # = non-constant function
+  

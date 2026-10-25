@@ -1,0 +1,22 @@
+[2026-10-24 20:02:57.54] Compiling Auditorias/ConsorcioDAOEchidna.sol... Done! (4.054306884s)
+Analyzing contract: /workspace/TP_v2/Auditorias/ConsorcioDAOEchidna.sol:ConsorcioDAOEchidna
+[2026-10-24 20:03:02.74] Running slither on Auditorias/ConsorcioDAOEchidna.sol... Done! (4.914821845s)
+[2026-10-24 20:03:08.00] [Worker 1] New coverage: 41 instr, 1 contracts, 1 seqs in corpus
+[2026-10-24 20:03:08.05] [Worker 3] New coverage: 84 instr, 1 contracts, 2 seqs in corpus
+[2026-10-24 20:03:08.18] [Worker 1] Test limit reached. Stopping.
+[2026-10-24 20:03:08.18] [Worker 2] Test limit reached. Stopping.
+[2026-10-24 20:03:08.18] [Worker 3] New coverage: 109 instr, 1 contracts, 3 seqs in corpus
+[2026-10-24 20:03:08.18] [Worker 0] Test limit reached. Stopping.
+[2026-10-24 20:03:08.19] [Worker 3] Test limit reached. Stopping.
+[2026-10-24 20:03:08.19] [status] tests: 0/4, fuzzing: 5190/5000, values: [], cov: 109, corpus: 3
+echidna_solvencia_balance: passing
+echidna_unidades_no_adjudicadas_sin_pagos: passing
+echidna_quorum_sin_division_por_cero_y_mayor_a_cero: passing
+echidna_timelock_sellado: passing
+
+
+Unique instructions: 109
+Unique codehashes: 1
+Corpus size: 3
+Seed: 9223217260061529106
+

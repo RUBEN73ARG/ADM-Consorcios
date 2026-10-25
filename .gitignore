@@ -1,0 +1,40 @@
+# ==============================================================================
+# ARCHIVOS DE ENTORNO Y CREDENCIALES SENSIBLES (NUNCA SUBIR A GITHUB)
+# ==============================================================================
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+*.secret
+*.key
+IPFS/
+*Apikey*
+
+# Dependencias de Node y builds de Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Dependencias y artefactos compilados de Foundry
+cache/
+out/
+broadcast/
+
+# Archivos de referencia locales y borradores previos
+*.pdf
+contratos/
+Entregables/
+GUIA_DESPLIEGUE_REMIX*
+GUIA_REPRODUCCION_DEVCONTAINER*
+INICIAR_*
+README_PROYECTO_ADM_CONSORCIOS.txt
+/ConsorcioDAO.t.sol
+/Deploy.s.sol
+/FlujoSepolia.s.sol
+/firmar_voto_foundry.js
+logs/deploy_sepolia_forge_script.txt
+logs/forge_coverage.txt
+logs/forge_test_gas_report.txt

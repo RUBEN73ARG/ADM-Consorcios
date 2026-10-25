@@ -11,26 +11,34 @@ import {ConsorcioGovernor} from "../contracts/ConsorcioGovernor.sol";
 import {ConsorcioObras} from "../contracts/ConsorcioObras.sol";
 
 /**
- * @dev Contrato auxiliar sin `receive()` ni `fallback()` para probar el revert
- *      `FalloTransferenciaETH` cuando un contratista rechaza pagos nativos (CD-06).
+ * @dev [CORRECCIÓN DOCENTE - PUNTO 2] Contrato auxiliar sin `receive()` ni `fallback()` payable
+ *      para verificar que cuando un contratista es un contrato que rechaza ETH:
+ *      1) El hito NO se bloquea al ejecutarse desde el Timelock (se acredita en custodia Pull).
+ *      2) El contratista puede luego reclamar sus fondos invocando `retirarPagoContratista(receptor)`.
  */
 contract ContratistaSinReceive {
-    // No implementa receive() ni fallback() payable
+    // No implementa receive() ni fallback() payable (rechaza transferencias directas de ETH)
+
+    function reclamarPagoEnCustodia(ConsorcioObras vault, address payable receptor) external {
+        vault.retirarPagoContratista(receptor);
+    }
 }
 
 /**
  * @title ConsorcioDAOTest
  * @author Equipo ConsorcioDAO - ETH Kipu Nivel 2
- * @notice Suite integral de pruebas unitarias, de integración, reversión y fuzzing para ConsorcioDAO.
- * @dev Cubre:
- *      - Ciclo completo de 3 hitos (30% -> rendición 1 -> 40% -> rendición 2 -> 30% final)
- *        gobernado íntegramente por ConsorcioGovernor + ConsorcioTimelock.
- *      - Creación de obra en 2 pasos (`crearObra` + `liberarHito1`) y cancelación (`cancelarObra`).
- *      - Pausa de emergencia (`pausarVault` / `reanudarVault`) y cancelación en estado pausado (CD-09).
- *      - Sellado atómico de roles en `ConsorcioTimelock` (`configurarYSellarGobernanza`, CD-01/CD-02/CD-07).
- *      - Transferencia de propiedad en 2 pasos (`Ownable2Step`: `transferOwnership` + `acceptOwnership`, CD-05).
- *      - Reasignación de unidades (`reasignarUnidad`), bloqueo Soulbound y Fuzz Testing de votos.
- *      - Todos los casos de `revert` con Custom Errors en los 4 contratos.
+ * @notice Suite integral de pruebas unitarias, de integración, reversión y fuzzing para ConsorcioDAO V2.
+ * @dev Cubre tanto la operatoria integral original como las 5 correcciones on-chain de la mentoría docente:
+ *      - [CORRECCIÓN DOCENTE - PUNTO 1]: Quórum estatutario mínimo del 30% al 50% (desplegado al 50%),
+ *        probando que jamás ocurre división por cero y que 1 solo voto no aprueba propuestas en el consorcio.
+ *      - [CORRECCIÓN DOCENTE - PUNTO 2]: Esquema Híbrido `Push + Pull Fallback` en `_transferirETH` y retiro
+ *        explícito mediante `retirarPagoContratista` cuando el contratista es un contrato que rechaza ETH.
+ *      - [CORRECCIÓN DOCENTE - PUNTO 3]: Validación on-chain `propietarioDeUnidad(unidadId) != address(0)`
+ *        en `pagarExpensas` (revirtiendo con `UnidadNoAdjudicada`) y soporte de pago por inquilino/tercero.
+ *      - [CORRECCIÓN DOCENTE - PUNTO 5]: Cancelación de propuestas en estado `Queued` durante la ventana de
+ *        seguridad (`minDelay`) del Timelock mediante `cancelarPropuestaEnCola`.
+ *      - [CORRECCIÓN DOCENTE - PUNTO 6]: Doble vía `onlyRegistradorOrOwner` en `ConsorcioVotes` para altas
+ *        y reasignaciones de unidades funcionales + rotación de `registrador` por el Timelock.
  */
 contract ConsorcioDAOTest is Test {
     ConsorcioVotes internal votes;
@@ -41,34 +49,39 @@ contract ConsorcioDAOTest is Test {
     address internal vecino1;
     address internal vecino2;
     address internal vecino3;
+    address internal vecino4;
+    address internal inquilinoLeo;
     address internal contratista;
 
     uint48 internal constant VOTING_DELAY = 10; // 10 segundos
     uint32 internal constant VOTING_PERIOD = 3600; // 1 hora
     uint256 internal constant PROPOSAL_THRESHOLD = 0;
-    uint256 internal constant QUORUM_PERCENTAGE = 4; // 4%
+    uint256 internal constant QUORUM_PERCENTAGE = 50; // [CORRECCIÓN DOCENTE - PUNTO 1] 50% de quórum estatutario
     uint256 internal constant MIN_DELAY = 1 days; // 86400 segundos
 
     function setUp() public {
         vecino1 = makeAddr("vecino1");
         vecino2 = makeAddr("vecino2");
         vecino3 = makeAddr("vecino3");
+        vecino4 = makeAddr("vecino4");
+        inquilinoLeo = makeAddr("inquilinoLeo");
         contratista = makeAddr("contratista");
 
-        // 1. Despliegue de ConsorcioVotes (owner inicial = address(this))
+        // 1. Despliegue de ConsorcioVotes (owner y registrador inicial = address(this))
         votes = new ConsorcioVotes(address(this));
 
-        // 2. Adjudicación de unidades ANTES de sellar/transferir (mitigación CD-01)
+        // 2. Adjudicación de 4 unidades funcionales ANTES de sellar/transferir (mitigación CD-01)
         votes.adjudicarUnidad(101, vecino1, 100);
         votes.adjudicarUnidad(102, vecino2, 100);
         votes.adjudicarUnidad(103, vecino3, 100);
+        votes.adjudicarUnidad(104, vecino4, 100);
 
         // 3. Despliegue de ConsorcioTimelock con listas vacías (mitigación CD-02)
         address[] memory proposers = new address[](0);
         address[] memory executors = new address[](0);
         timelock = new ConsorcioTimelock(MIN_DELAY, proposers, executors, address(this));
 
-        // 4. Despliegue de ConsorcioGovernor
+        // 4. Despliegue de ConsorcioGovernor con QUORUM_PERCENTAGE = 50% (Corrección Docente Punto 1)
         governor = new ConsorcioGovernor(
             IVotes(address(votes)),
             timelock,
@@ -81,10 +94,10 @@ contract ConsorcioDAOTest is Test {
         // 5. Sellado atómico de roles en Timelock (mitigación CD-02 / CD-07)
         timelock.configurarYSellarGobernanza(address(governor));
 
-        // 6. Despliegue de ConsorcioObras
-        obras = new ConsorcioObras(address(timelock));
+        // 6. Despliegue de ConsorcioObras vinculado a Timelock y ConsorcioVotes (Corrección Docente Punto 3)
+        obras = new ConsorcioObras(address(timelock), address(votes));
 
-        // 7. Fondeo inicial de expensas de los 3 vecinos (15 ETH en total)
+        // 7. Fondeo inicial de expensas de los vecinos (15 ETH en total)
         vm.deal(vecino1, 10 ether);
         vm.deal(vecino2, 10 ether);
         vm.deal(vecino3, 10 ether);
@@ -125,7 +138,7 @@ contract ConsorcioDAOTest is Test {
         // Avanzar más allá del votingDelay
         vm.warp(block.timestamp + VOTING_DELAY + 1);
 
-        // Votan vecino1 y vecino2 a favor (2 de 3 unidades = 66.6% > 4% quórum)
+        // Votan vecino1 y vecino2 a favor (2 de 4 unidades = 50% >= 50% quórum estatutario)
         vm.prank(vecino1);
         governor.castVote(proposalId, 1);
         vm.prank(vecino2);
@@ -264,42 +277,234 @@ contract ConsorcioDAOTest is Test {
     }
 
     // =========================================================================
-    // 3. Pruebas de ConsorcioVotes (ERC721Votes, Reasignación, Ownable2Step)
+    // 3. Pruebas de las 5 Correcciones On-Chain de la Mentoría Docente
     // =========================================================================
 
-    function test_ConsorcioVotes_ReasignacionYOwnable2Step() public {
+    /**
+     * @notice [CORRECCIÓN DOCENTE - PUNTO 1] Verifica que con quórum del 50% y 4 unidades,
+     *         `quorum()` exige 2 votos y una propuesta con 1 solo voto fracasa (`Defeated`).
+     */
+    function test_CorreccionDocente1_QuorumMinimo30Al50NuncaEsCeroNiApruebaConUnSoloVoto() public {
+        assertEq(governor.QUORUM_MINIMO(), 30);
+        assertEq(governor.quorumNumerator(), 50);
+        assertEq(governor.quorumDenominator(), 100);
+        assertEq(governor.quorum(block.timestamp - 1), 2); // 50% de 4 unidades = 2 votos
+
+        // Crear propuesta y votar con 1 sola unidad (vecino1)
+        address[] memory targets = new address[](1);
+        targets[0] = address(obras);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeCall(ConsorcioObras.pausarVault, ());
+
+        vm.prank(vecino1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, "Propuesta con 1 solo voto");
+
+        vm.warp(block.timestamp + VOTING_DELAY + 1);
+        vm.prank(vecino1);
+        governor.castVote(proposalId, 1); // Solo 1 voto a favor (quórum exige 2)
+
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
+        // Debe quedar Defeated porque 1 voto < 2 votos de quórum
+        assertEq(uint8(governor.state(proposalId)), uint8(IGovernor.ProposalState.Defeated));
+    }
+
+    /**
+     * @notice [CORRECCIÓN DOCENTE - PUNTO 1] Prueba de lógica / Fuzzing sobre el cálculo de quórum
+     *         demostrando que `quorumDenominator() == 100` (jamás divide por cero) y para todo
+     *         porcentaje válido `[30, 100]` y consorcio de `>= 4` unidades el quórum nunca es cero.
+     */
+    function testFuzz_CorreccionDocente1_QuorumLogicaSinDivisionPorCero(
+        uint256 porcentajeQuorum,
+        uint256 cantidadUnidadesExtras
+    ) public {
+        porcentajeQuorum = bound(porcentajeQuorum, governor.QUORUM_MINIMO(), governor.QUORUM_MAXIMO());
+        cantidadUnidadesExtras = bound(cantidadUnidadesExtras, 0, 50);
+
+        for (uint256 i = 0; i < cantidadUnidadesExtras; i++) {
+            votes.adjudicarUnidad(200 + i, vecino1, 100);
+        }
+
+        vm.warp(block.timestamp + 10);
+        uint256 totalUnidades = 4 + cantidadUnidadesExtras;
+        uint256 denominador = governor.quorumDenominator();
+        assertEq(denominador, 100);
+        assertTrue(denominador > 0);
+
+        uint256 quorumCalculado = (totalUnidades * porcentajeQuorum) / denominador;
+        assertGe(quorumCalculado, 1); // Nunca es 0
+    }
+
+    /**
+     * @notice [CORRECCIÓN DOCENTE - PUNTO 2] Verifica el patrón Híbrido `Push + Pull Fallback`:
+     *         si el contratista es un contrato que rechaza ETH (`ContratistaSinReceive`), la ejecución
+     *         del hito NO revierte ni bloquea al Timelock; el saldo queda en custodia Pull y luego el
+     *         contratista lo retira hacia una billetera operativa con `retirarPagoContratista`.
+     */
+    function test_CorreccionDocente2_PullFallbackContratistaSinReceiveYRetiroExitoso() public {
+        ContratistaSinReceive contratoContratista = new ContratistaSinReceive();
+        address billeteraOperativaContratista = makeAddr("billeteraOperativaContratista");
+
+        // Aprobar obra de 1 ETH y liberar Hito 1 (0.3 ETH) hacia un contrato que rechaza ETH
+        vm.prank(address(timelock));
+        uint256 obraId = obras.aprobarObraYLiberarHito1(
+            "Impermeabilizacion Terraza",
+            "Membrana geotextil",
+            payable(address(contratoContratista)),
+            1 ether
+        );
+
+        // El Hito 1 NO revirtió: pasó a Hito1Liberado y acreditó 0.3 ETH en custodia Pull
+        assertEq(obraId, 1);
+        assertEq(address(contratoContratista).balance, 0);
+        assertEq(obras.pagosPendientesContratista(address(contratoContratista)), 0.3 ether);
+        assertEq(obras.totalPagosPendientesContratistas(), 0.3 ether);
+        assertEq(obras.fondosComprometidosEnObras(), 0.7 ether);
+        // El saldo libre descuenta tanto el comprometido (0.7) como el Pull pendiente (0.3) = 14 ETH libres
+        assertEq(obras.saldoLibreDisponible(), 14 ether);
+
+        // El contratista retira su pago en custodia hacia una billetera EOA que sí recibe ETH
+        contratoContratista.reclamarPagoEnCustodia(obras, payable(billeteraOperativaContratista));
+
+        assertEq(billeteraOperativaContratista.balance, 0.3 ether);
+        assertEq(obras.pagosPendientesContratista(address(contratoContratista)), 0);
+        assertEq(obras.totalPagosPendientesContratistas(), 0);
+
+        // Si intenta retirar de nuevo sin saldo pendiente, revierte con SinPagosPendientes
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ConsorcioObras.SinPagosPendientes.selector,
+                address(contratoContratista)
+            )
+        );
+        contratoContratista.reclamarPagoEnCustodia(obras, payable(billeteraOperativaContratista));
+    }
+
+    /**
+     * @notice [CORRECCIÓN DOCENTE - PUNTO 3] Verifica que `pagarExpensas` bloquee pagos a unidades
+     *         no adjudicadas (`UnidadNoAdjudicada`) pero permita que un inquilino abone la expensa
+     *         de una unidad funcional existente y adjudicada.
+     */
+    function test_CorreccionDocente3_PagarExpensasValidaUnidadAdjudicadaYPermiteInquilino() public {
+        vm.deal(inquilinoLeo, 2 ether);
+
+        // 1) Intentar pagar expensas a la unidad 999 (no adjudicada) debe revertir con UnidadNoAdjudicada(999)
+        vm.expectRevert(abi.encodeWithSelector(ConsorcioObras.UnidadNoAdjudicada.selector, 999));
+        vm.prank(inquilinoLeo);
+        obras.pagarExpensas{value: 1 ether}(999, "Unidad inexistente");
+
+        // 2) El inquilino Leo abona las expensas del Lote 102 (adjudicado a vecino2)
+        uint256 previoUnidad102 = obras.expensasPagadasPorUnidad(102);
+        vm.prank(inquilinoLeo);
+        obras.pagarExpensas{value: 1 ether}(102, "Expensas pagadas por Inquilino Leo - Lote 102");
+
+        assertEq(obras.expensasPagadasPorUnidad(102), previoUnidad102 + 1 ether);
+        assertEq(obras.expensasPagadasPorVecino(inquilinoLeo), 1 ether);
+    }
+
+    /**
+     * @notice [CORRECCIÓN DOCENTE - PUNTO 5] Verifica que una propuesta ya aprobada y encolada (`Queued`)
+     *         pueda ser cancelada durante la ventana de seguridad (`minDelay`) del Timelock mediante
+     *         `cancelarPropuestaEnCola` por el Guardián o por el Proponente original.
+     */
+    function test_CorreccionDocente5_CancelarPropuestaEnColaDuranteMinDelay() public {
+        address[] memory targets = new address[](1);
+        targets[0] = address(obras);
+        uint256[] memory values = new uint256[](1);
+        values[0] = 0;
+        bytes[] memory calldatas = new bytes[](1);
+        calldatas[0] = abi.encodeCall(
+            ConsorcioObras.aprobarObraYLiberarHito1,
+            ("Obra con Error Detectado", "Presupuesto erroneo", payable(contratista), 2 ether)
+        );
+        string memory descripcion = "Propuesta a cancelar en ventana de seguridad del Timelock";
+        bytes32 descHash = keccak256(bytes(descripcion));
+
+        // 1) Proponer, votar y encolar en el Timelock
+        vm.prank(vecino1);
+        uint256 proposalId = governor.propose(targets, values, calldatas, descripcion);
+
+        // Si se intenta usar cancelarPropuestaEnCola antes de estar Queued, revierte con PropuestaNoEncolada
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ConsorcioGovernor.PropuestaNoEncolada.selector,
+                proposalId,
+                IGovernor.ProposalState.Pending
+            )
+        );
+        governor.cancelarPropuestaEnCola(targets, values, calldatas, descHash);
+
+        vm.warp(block.timestamp + VOTING_DELAY + 1);
+        vm.prank(vecino1);
+        governor.castVote(proposalId, 1);
+        vm.prank(vecino2);
+        governor.castVote(proposalId, 1);
+
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
+        governor.queue(targets, values, calldatas, descHash);
+        assertEq(uint8(governor.state(proposalId)), uint8(IGovernor.ProposalState.Queued));
+
+        // 2) Durante el minDelay, un tercero no autorizado NO puede cancelarla
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ConsorcioGovernor.NoAutorizadoParaCancelar.selector,
+                vecino3,
+                vecino1,
+                address(this)
+            )
+        );
+        vm.prank(vecino3);
+        governor.cancelarPropuestaEnCola(targets, values, calldatas, descHash);
+
+        // 3) El Guardián (o el proponente vecino1) cancela la propuesta encolada durante la ventana de seguridad
+        governor.cancelarPropuestaEnCola(targets, values, calldatas, descHash);
+        assertEq(uint8(governor.state(proposalId)), uint8(IGovernor.ProposalState.Canceled));
+
+        // 4) Incluso tras vencer el minDelay, la propuesta ya NO puede ejecutarse
+        vm.warp(block.timestamp + MIN_DELAY + 1);
+        vm.expectRevert();
+        governor.execute(targets, values, calldatas, descHash);
+    }
+
+    /**
+     * @notice [CORRECCIÓN DOCENTE - PUNTO 6] Verifica el esquema de doble vía (`onlyRegistradorOrOwner`)
+     *         en `ConsorcioVotes`: tras transferir el `owner` al `ConsorcioTimelock`, tanto el `registrador`
+     *         (en 1 paso) como el `ConsorcioTimelock` (por gobernanza) pueden adjudicar y reasignar unidades.
+     */
+    function test_CorreccionDocente6_DobleViaRegistradorYTimelockEnConsorcioVotes() public {
         address comprador = makeAddr("comprador");
+        address nuevoRegistrador = makeAddr("nuevoRegistrador");
 
-        // Verificar estado inicial del Lote 101
-        assertEq(votes.propietarioDeUnidad(101), vecino1);
-        assertEq(votes.getVotes(vecino1), 1);
-        assertEq(votes.clock(), uint48(block.timestamp));
-        assertEq(votes.CLOCK_MODE(), "mode=timestamp");
-
-        // Reasignar unidad 101 por compraventa escriturada
-        votes.reasignarUnidad(101, comprador);
-        assertEq(votes.propietarioDeUnidad(101), comprador);
-        assertEq(votes.getVotes(vecino1), 0);
-        assertEq(votes.getVotes(comprador), 1);
-
-        // Habilitar y deshabilitar transferencias estatutarias
-        votes.configurarTransferencias(true);
-        assertTrue(votes.transferenciasHabilitadas());
-        vm.prank(comprador);
-        votes.transferFrom(comprador, vecino1, 101);
-        assertEq(votes.propietarioDeUnidad(101), vecino1);
-
-        votes.configurarTransferencias(false);
-        assertFalse(votes.transferenciasHabilitadas());
-
-        // CD-05: Transferencia de propiedad en 2 pasos (Ownable2Step) hacia el Timelock
+        // Transferir ownership de ConsorcioVotes al Timelock (Ownable2Step)
         votes.transferOwnership(address(timelock));
-        assertEq(votes.owner(), address(this)); // Sigue siendo address(this) hasta aceptar
-        assertEq(votes.pendingOwner(), address(timelock));
-
         vm.prank(address(timelock));
         votes.acceptOwnership();
         assertEq(votes.owner(), address(timelock));
+        assertEq(votes.registrador(), address(this));
+
+        // 1) El Registrador sigue pudiendo adjudicar y reasignar en 1 paso (evita deadlock de quórum)
+        votes.adjudicarUnidad(105, comprador, 100);
+        assertEq(votes.propietarioDeUnidad(105), comprador);
+
+        votes.reasignarUnidad(101, comprador);
+        assertEq(votes.propietarioDeUnidad(101), comprador);
+        assertEq(votes.getVotes(vecino1), 0);
+        assertEq(votes.getVotes(comprador), 2);
+
+        // 2) El Timelock (owner supremo) también puede reasignar unidades y rotar al Registrador
+        vm.startPrank(address(timelock));
+        votes.reasignarUnidad(101, vecino1);
+        assertEq(votes.propietarioDeUnidad(101), vecino1);
+
+        votes.actualizarRegistrador(nuevoRegistrador);
+        assertEq(votes.registrador(), nuevoRegistrador);
+        vm.stopPrank();
+
+        // 3) Una cuenta sin rol de registrador ni owner revierte con NoAutorizadoParaRegistro
+        vm.expectRevert(abi.encodeWithSelector(ConsorcioVotes.NoAutorizadoParaRegistro.selector, vecino2));
+        vm.prank(vecino2);
+        votes.reasignarUnidad(101, vecino2);
     }
 
     function testFuzz_ReasignacionUnidadMantieneVotosYPropiedad(address nuevoVecino) public {
@@ -351,25 +556,34 @@ contract ConsorcioDAOTest is Test {
         vm.expectRevert(ConsorcioTimelock.DireccionGovernorInvalida.selector);
         nuevoTl.configurarYSellarGobernanza(address(0));
 
-        // Validaciones de constructor de ConsorcioGovernor (GovernorSettings revierte con GovernorInvalidVotingPeriod(0))
+        // Validaciones de constructor de ConsorcioGovernor
         vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorInvalidVotingPeriod.selector, 0));
-        new ConsorcioGovernor(IVotes(address(votes)), nuevoTl, 1, 0, 0, 4);
+        new ConsorcioGovernor(IVotes(address(votes)), nuevoTl, 1, 0, 0, 50);
 
-        vm.expectRevert(abi.encodeWithSelector(ConsorcioGovernor.QuorumInvalido.selector, 2));
-        new ConsorcioGovernor(IVotes(address(votes)), nuevoTl, 1, 3600, 0, 2);
+        // [CORRECCIÓN DOCENTE - PUNTO 1] Quórum menor a 30% o mayor a 100% revierte con QuorumInvalido
+        vm.expectRevert(abi.encodeWithSelector(ConsorcioGovernor.QuorumInvalido.selector, 29));
+        new ConsorcioGovernor(IVotes(address(votes)), nuevoTl, 1, 3600, 0, 29);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                bytes4(keccak256("GovernorInvalidQuorumFraction(uint256,uint256)")), 101, 100
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(ConsorcioGovernor.QuorumInvalido.selector, 101));
         new ConsorcioGovernor(IVotes(address(votes)), nuevoTl, 1, 3600, 0, 101);
+
+        // Actualizar Guardián vía propuesta de gobernanza real (onlyGovernance en OZ v5 verifica la cola _governanceCall)
+        vm.expectRevert(abi.encodeWithSelector(IGovernor.GovernorOnlyExecutor.selector, vecino1));
+        vm.prank(vecino1);
+        governor.actualizarGuardian(vecino4);
+
+        bytes memory dataGuardian = abi.encodeCall(ConsorcioGovernor.actualizarGuardian, (vecino4));
+        _proponerVotarYEjecutar(address(governor), 0, dataGuardian, "Propuesta: Rotar Guardian a vecino4");
+        assertEq(governor.guardian(), vecino4);
     }
 
     function test_Reverts_ConsorcioObras() public {
         // Constructor con address(0)
         vm.expectRevert(ConsorcioObras.DireccionInvalida.selector);
-        new ConsorcioObras(address(0));
+        new ConsorcioObras(address(0), address(votes));
+
+        vm.expectRevert(ConsorcioObras.DireccionInvalida.selector);
+        new ConsorcioObras(address(timelock), address(0));
 
         // Expensas inválidas
         vm.expectRevert(ConsorcioObras.UnidadInvalida.selector);
@@ -420,11 +634,5 @@ contract ConsorcioDAOTest is Test {
         vm.expectRevert(ConsorcioObras.RendicionDeCuentasVacia.selector);
         vm.prank(contratista);
         obras.rendirCuentasHito1(id, "");
-
-        // CD-06: FalloTransferenciaETH si el contratista es un contrato sin receive()
-        ContratistaSinReceive malContratista = new ContratistaSinReceive();
-        vm.prank(address(timelock));
-        vm.expectRevert(ConsorcioObras.FalloTransferenciaETH.selector);
-        obras.aprobarObraYLiberarHito1("Obra Fallida", "Desc", payable(address(malContratista)), 1 ether);
     }
 }

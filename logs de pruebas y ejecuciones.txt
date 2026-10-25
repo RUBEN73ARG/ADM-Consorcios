@@ -1,0 +1,321 @@
+================================================================================
+PROYECTO FINAL ETH KIPU NIVEL 2: ADM-CONSORCIOS (ConsorcioDAO V2)
+REGISTRO OFICIAL DE CONSOLA, PRUEBAS, AUDITORIAS Y DESPLIEGUE EN SEPOLIA
+================================================================================
+
+[ETAPA 1 - 2026-10-24] REMEDIACION INTEGRAL DE LAS 6 OBSERVACIONES DOCENTES (V2)
+Directorio: /workspace/TP_v2
+Archivos remediados:
+  - contracts/ConsorcioGovernor.sol:
+      * [CORRECCIÓN DOCENTE - PUNTO 1]: QUORUM_MINIMO = 30 (30%), desplegado con QUORUM_PERCENTAGE = 50 (50%). Documentación NatSpec de la alternativa teórica con override.
+      * [CORRECCIÓN DOCENTE - PUNTO 5]: Rol guardian, actualizarGuardian (onlyGovernance) y cancelarPropuestaEnCola durante el minDelay en estado Queued.
+  - contracts/ConsorcioObras.sol:
+      * [CORRECCIÓN DOCENTE - PUNTO 2]: Esquema híbrido Push + Pull Fallback en _transferirETH, pagosPendientesContratista, totalPagosPendientesContratistas, retirarPagoContratista y descuento en saldoLibreDisponible().
+      * [CORRECCIÓN DOCENTE - PUNTO 3]: Inyección de IConsorcioVotes immutable consorcioVotes en constructor y validación propietarioDeUnidad(unidadId) != address(0) en pagarExpensas (permitiendo pago por terceros conforme Art. 881 CCyC).
+  - contracts/ConsorcioVotes.sol:
+      * [CORRECCIÓN DOCENTE - PUNTO 6]: Rol registrador, modificador onlyRegistradorOrOwner en adjudicarUnidad y reasignarUnidad, y función actualizarRegistrador (onlyOwner).
+  - README.md:
+      * [CORRECCIÓN DOCENTE - PUNTO 4]: Evaluación arquitectónica comparativa de identificación de persona física (World ID vs. Social Login / ERC-4337 vs. Hash Registral On-Chain bytes32).
+================================================================================
+
+================================================================================
+[ETAPA 2A - 2026-10-24] EJECUCION DE SUITE DE TESTS, INVARIANTES Y GAS REPORT (V2)
+Directorio: /workspace/TP_v2
+Comando ejecutado:
+  cd /workspace/TP_v2 && forge test -vv --gas-report | tee logs/test.txt
+
+Salida literal de consola (logs/test.txt):
+--------------------------------------------------------------------------------
+Compiling 71 files with Solc 0.8.24
+Solc 0.8.24 finished in 8.95s
+Compiler run successful!
+
+Ran 12 tests for test/ConsorcioDAO.t.sol:ConsorcioDAOTest
+[PASS] testFuzz_Caso1_QuorumSinDivisionPorCeroYMinimo2Para4Unidades(uint256,uint256) (runs: 256, μ: 12199658, ~: 9176158)
+[PASS] testFuzz_ReasignacionUnidadMantieneVotosYPropiedad(address) (runs: 256, μ: 204669, ~: 205031)
+[PASS] test_Caso2_PullFallbackContratistaRechazaETH() (gas: 1626661)
+[PASS] test_Caso3_PagarExpensasValidaUnidadAdjudicadaYPermiteTerceros() (gas: 280684)
+[PASS] test_Caso5_CancelarPropuestaEnColaDuranteMinDelay() (gas: 1581006)
+[PASS] test_Caso6_RegistradorPuedeAdjudicarYReasignarConOwnershipEnTimelock() (gas: 653459)
+[PASS] test_ConsorcioVotes_ReasignacionYOwnable2Step() (gas: 499043)
+[PASS] test_CrearEnDosPasosYCancelarDurantePausa() (gas: 515485)
+[PASS] test_FlujoCompletoObraTresHitos() (gas: 2378069)
+[PASS] test_Reverts_ConsorcioObras() (gas: 1170332)
+[PASS] test_Reverts_ConsorcioTimelock_Y_ConsorcioGovernor() (gas: 3112581)
+[PASS] test_Reverts_ConsorcioVotes() (gas: 175657)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 523.76ms (525.81ms CPU time)
+
+Ran 12 tests for test/ConsorcioDAOInvariants.t.sol:ConsorcioDAOInvariants
+[PASS] invariant_ContabilidadEspejo() (runs: 256, calls: 16384, reverts: 1474)
+[PASS] invariant_LiberadoNoSuperaPresupuesto() (runs: 256, calls: 16384, reverts: 1474)
+[PASS] invariant_QuorumNuncaCeroNiDivisionPorCero() (runs: 256, calls: 16384, reverts: 1474)
+[PASS] invariant_SolvenciaDelVault() (runs: 256, calls: 16384, reverts: 1474)
+[PASS] invariant_SupplyIgualAdjudicaciones() (runs: 256, calls: 16384, reverts: 1474)
+[PASS] invariant_TransferenciasSiguenDeshabilitadas() (runs: 256, calls: 16384, reverts: 1474)
+[PASS] test_CD04_ExpensasSobreUnidadInexistenteRevierteV2() (gas: 23805)
+[PASS] test_FlujoCompleto_Governor_Timelock_Obras() (gas: 760602)
+[PASS] test_RendicionSoloAdminDeObra() (gas: 365522)
+[PASS] test_SelladoRevocaAdminYBloqueaReejecucion() (gas: 43115)
+[PASS] test_SoloTimelockLiberarHitos() (gas: 257613)
+[PASS] test_TransferenciaSoulboundRevierte() (gas: 40024)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 15.17s (59.56s CPU time)
+
+Ran 2 test suites in 15.70s (15.69s CPU time): 24 tests passed, 0 failed, 0 skipped (24 total tests)
+--------------------------------------------------------------------------------
+Estado: EXITOSO (24/24 tests aprobados = 100%, incluyendo 6 invariantes x 16,384 llamadas)
+================================================================================
+
+================================================================================
+[ETAPA 2B - 2026-10-24] REPORTE DE COBERTURA DE CODIGO V2 (forge coverage > 40%)
+Directorio: /workspace/TP_v2
+Comando ejecutado:
+  cd /workspace/TP_v2 && forge coverage --no-match-coverage "(script|lib|test|Auditorias|src)" | tee logs/coverage.txt
+
+Salida literal de consola (logs/coverage.txt):
+--------------------------------------------------------------------------------
+╭---------------------------------+------------------+------------------+----------------+-----------------╮
+| File                            | % Lines          | % Statements     | % Branches     | % Funcs         |
++==========================================================================================================+
+| contracts/ConsorcioGovernor.sol | 85.11% (40/47)   | 89.29% (50/56)   | 60.00% (6/10)  | 69.23% (9/13)   |
+|---------------------------------+------------------+------------------+----------------+-----------------|
+| contracts/ConsorcioObras.sol    | 95.36% (185/194) | 94.84% (202/213) | 76.92% (30/39) | 95.65% (22/23)  |
+|---------------------------------+------------------+------------------+----------------+-----------------|
+| contracts/ConsorcioTimelock.sol | 92.86% (13/14)   | 94.12% (16/17)   | 50.00% (1/2)   | 100.00% (1/1)   |
+|---------------------------------+------------------+------------------+----------------+-----------------|
+| contracts/ConsorcioVotes.sol    | 94.55% (52/55)   | 96.61% (57/59)   | 80.00% (8/10)  | 90.91% (10/11)  |
+|---------------------------------+------------------+------------------+----------------+-----------------|
+| Total                           | 94.03% (378/402) | 94.55% (434/459) | 76.39% (55/72) | 89.39% (59/66)  |
+╰---------------------------------+------------------+------------------+----------------+-----------------╯
+--------------------------------------------------------------------------------
+Estado: EXITOSO (94.03% Lines, 94.55% Statements, superando holgadamente el requisito mínimo del 40%)
+================================================================================
+
+================================================================================
+[ETAPA 2C - 2026-10-24] FUZZING DE PROPIEDADES LOGICAS CON ECHIDNA (V2)
+Directorio: /workspace/TP_v2
+Comando ejecutado:
+  cd /workspace/TP_v2 && echidna Auditorias/ConsorcioDAOEchidna.sol --contract ConsorcioDAOEchidna --test-limit 5000 --format text | tee logs/echidna.txt
+
+Salida literal de consola (logs/echidna.txt):
+--------------------------------------------------------------------------------
+[2026-10-24 20:02:57.54] Compiling Auditorias/ConsorcioDAOEchidna.sol... Done! (4.054306884s)
+Analyzing contract: /workspace/TP_v2/Auditorias/ConsorcioDAOEchidna.sol:ConsorcioDAOEchidna
+[2026-10-24 20:03:02.74] Running slither on Auditorias/ConsorcioDAOEchidna.sol... Done! (4.914821845s)
+[2026-10-24 20:03:08.00] [Worker 1] New coverage: 41 instr, 1 contracts, 1 seqs in corpus
+[2026-10-24 20:03:08.05] [Worker 3] New coverage: 84 instr, 1 contracts, 2 seqs in corpus
+[2026-10-24 20:03:08.18] [Worker 1] Test limit reached. Stopping.
+[2026-10-24 20:03:08.18] [Worker 2] Test limit reached. Stopping.
+[2026-10-24 20:03:08.18] [Worker 3] New coverage: 109 instr, 1 contracts, 3 seqs in corpus
+[2026-10-24 20:03:08.18] [Worker 0] Test limit reached. Stopping.
+[2026-10-24 20:03:08.19] [Worker 3] Test limit reached. Stopping.
+[2026-10-24 20:03:08.19] [status] tests: 0/4, fuzzing: 5190/5000, values: [], cov: 109, corpus: 3
+echidna_solvencia_balance: passing
+echidna_unidades_no_adjudicadas_sin_pagos: passing
+echidna_quorum_sin_division_por_cero_y_mayor_a_cero: passing
+echidna_soulbound_intransferible: passing
+Seed: -4141612789008365180
+--------------------------------------------------------------------------------
+Estado: EXITOSO (4/4 invariantes aprobadas tras 5,190 secuencias aleatorias)
+================================================================================
+
+================================================================================
+[ETAPA 3 - 2026-10-24] ANALISIS ESTATICO DE SEGURIDAD CON SLITHER Y JUSTIFICACION (V2)
+Directorio: /workspace/TP_v2
+Comando ejecutado:
+  cd /workspace/TP_v2 && slither . --filter-paths "lib/|test/|script/|Auditorias/|src/" 2>&1 | tee logs/slither.txt
+
+Nota metodológica: Se empleó `--filter-paths "lib/|test/|script/|Auditorias/|src/"` para circunscribir
+los 102 detectores de Slither exclusivamente a los 4 contratos de producción en `contracts/`, excluyendo
+las librerías externas de OpenZeppelin Contracts v5.1.0 (`lib/openzeppelin-contracts`, ya auditadas por
+OpenZeppelin, Trail of Bits y Certora, que emplean bloques inline assembly optimizados que disparan
+avisos informativos ajenos al código de negocio).
+
+Salida literal de consola (logs/slither.txt):
+--------------------------------------------------------------------------------
+'forge clean' running (wd: /workspace/TP_v2)
+'forge config --json' running
+'forge build --build-info --deny never --skip ./test/** ./script/** --force' running (wd: /workspace/TP_v2)
+INFO:Detectors:
+Detector: missing-zero-check
+ConsorcioVotes.constructor(address).initialOwner (contracts/ConsorcioVotes.sol#124) lacks a zero-check on :
+                - registrador = initialOwner (contracts/ConsorcioVotes.sol#130)
+ConsorcioVotes.actualizarRegistrador(address).nuevoRegistrador (contracts/ConsorcioVotes.sol#143) lacks a zero-check on :
+                - registrador = nuevoRegistrador (contracts/ConsorcioVotes.sol#145)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
+INFO:Detectors:
+Detector: reentrancy-benign
+Reentrancy in ConsorcioObras._transferirETH(address,uint256) (contracts/ConsorcioObras.sol#765-773):
+        External calls:
+        - (exito,None) = destinatario.call{value: monto}() (contracts/ConsorcioObras.sol#767)
+        State variables written after the call(s):
+        - pagosPendientesContratista[destinatario] += monto (contracts/ConsorcioObras.sol#769)
+        - totalPagosPendientesContratistas += monto (contracts/ConsorcioObras.sol#770)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+INFO:Detectors:
+Detector: reentrancy-events
+Reentrancy in ConsorcioObras._transferirETH(address,uint256) (contracts/ConsorcioObras.sol#765-773):
+        External calls:
+        - (exito,None) = destinatario.call{value: monto}() (contracts/ConsorcioObras.sol#767)
+        Event emitted after the call(s):
+        - PagoContratistaEnCustodia(destinatario,monto) (contracts/ConsorcioObras.sol#771)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+INFO:Detectors:
+Detector: timestamp
+ConsorcioGovernor.cancelarPropuestaEnCola(address[],uint256[],bytes[],bytes32) (contracts/ConsorcioGovernor.sol#177-194) uses timestamp for comparisons
+        Dangerous comparisons:
+        - currentState != ProposalState.Queued (contracts/ConsorcioGovernor.sol#185)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: dead-code
+ConsorcioVotes._increaseBalance(address,uint128) (contracts/ConsorcioVotes.sol#281-283) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+Detector: low-level-calls
+Low level call in ConsorcioObras.retirarPagoContratista(address) (contracts/ConsorcioObras.sol#726-736):
+        - (exito,None) = receptor.call{value: montoPendiente}() (contracts/ConsorcioObras.sol#732)
+Low level call in ConsorcioObras._transferirETH(address,uint256) (contracts/ConsorcioObras.sol#765-773):
+        - (exito,None) = destinatario.call{value: monto}() (contracts/ConsorcioObras.sol#767)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Detectors:
+Detector: naming-convention
+Function ConsorcioVotes.CLOCK_MODE() (contracts/ConsorcioVotes.sol#251-253) is not in mixedCase
+Parameter ConsorcioObras.constructor(address,address)._timelock (contracts/ConsorcioObras.sol#271) is not in mixedCase
+Parameter ConsorcioObras.constructor(address,address)._consorcioVotes (contracts/ConsorcioObras.sol#271) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Slither:. analyzed (58 contracts with 102 detectors), 8 result(s) found
+--------------------------------------------------------------------------------
+Estado: EXITOSO (0 Críticas, 0 Altas, 0 Medias; 8 avisos informativos/benignos justificados en Auditorias/SLITHER_JUSTIFICACION_V2.md)
+================================================================================
+
+================================================================================
+[ETAPA 4 - 2026-10-24] DESPLIEGUE CANONICO V2 CON FOUNDRY Y VERIFICACION EN SEPOLIA ETHERSCAN
+Directorio: /workspace/TP_v2
+Comando ejecutado:
+  cd /workspace/TP_v2 && . ./.env && forge script script/Deploy.s.sol:DeployConsorcioDAO --rpc-url $SEPOLIA_RPC_URL --sender 0x3b9DE69C652f54582155372d45bB176e810eEEA1 --broadcast --unlocked --slow -g 900 --verify --etherscan-api-key $ETHERSCAN_API_KEY -vv | tee logs/deploy_foundry_sepolia.txt
+
+Salida literal de consola (logs/deploy_foundry_sepolia.txt):
+--------------------------------------------------------------------------------
+No files changed, compilation skipped
+Script ran successfully.
+
+== Return ==
+votes: contract ConsorcioVotes 0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878
+timelock: contract ConsorcioTimelock 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+governor: contract ConsorcioGovernor 0x6D38403399110487B0654fD6Eb029920739973b2
+obras: contract ConsorcioObras 0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596
+proposalId: uint256 14482728348493155502191935859541702641564493741427847260982949677415526180625 [1.448e76]
+
+== Logs ==
+  ==================================================================
+  DESPLIEGUE CANONICO V2 ADM-CONSORCIOS (ConsorcioDAO) EN SEPOLIA
+  Deployer / Vecino Lote 101 / Registrador / Guardian: 0x3b9DE69C652f54582155372d45bB176e810eEEA1
+  ==================================================================
+  1. ConsorcioVotes desplegado en:    0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878
+  2a. Unidad Funcional 101 adjudicada a deployer
+  3. ConsorcioTimelock desplegado en: 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+  2b. Unidad Funcional 102 adjudicada a deployer
+  4. ConsorcioGovernor desplegado en: 0x6D38403399110487B0654fD6Eb029920739973b2
+  2c. Unidad Funcional 103 adjudicada a Vecino 103
+  5. Timelock sellado atomicamente: DEFAULT_ADMIN_ROLE revocado para deployer
+  2d. Unidad Funcional 104 adjudicada a Vecino 104 (Total 4 unidades)
+  6. Ownable2Step iniciado: pendingOwner de ConsorcioVotes = 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+  7. ConsorcioObras desplegado en:    0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596
+  8. Expensas abonadas al Vault por Lote 101 (wei): 1000000000000000
+  9. Propuesta de Obra creada en ConsorcioGovernor! Proposal ID: 14482728348493155502191935859541702641564493741427847260982949677415526180625
+
+##### sepolia
+✅  [Success] Hash: 0xb310812606a6f1e89789912962aef08f1235a0b3b51493621643adae7d8cc8bd
+Contract: ConsorcioVotes
+Contract Address: 0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878
+Block: 11986717 | Gas: 16364046
+
+✅  [Success] Hash: 0xd9c5f68c1b3549749a9d6d2ecdc6a4207c4a34b1c3a2416fdf6a3f18dfc28991
+Contract: ConsorcioVotes | Function: adjudicarUnidad(uint256,address,uint256) [UF 101]
+Block: 11986718 | Gas: 915966
+
+✅  [Success] Hash: 0xc4d4ed44e5d5c06678ea45edc97ef11f713bab0391ea04f8c7eaeef74353f6ee
+Contract: ConsorcioTimelock
+Contract Address: 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+Block: 11986719 | Gas: 11144961
+
+✅  [Success] Hash: 0xa15d2bf9f059ad680d4f90a19de74afbb3bb4f1b72357276e50e10303ad599a2
+Contract: ConsorcioVotes | Function: adjudicarUnidad(uint256,address,uint256) [UF 102]
+Block: 11986720 | Gas: 516723
+
+✅  [Success] Hash: 0x691311c57b86c5e438c765eae6544e562a369170f963c00ee9737f29f669cedf
+Contract: ConsorcioGovernor
+Contract Address: 0x6D38403399110487B0654fD6Eb029920739973b2
+Block: 11986721 | Gas: 27817521
+
+✅  [Success] Hash: 0xe0f0bf878522b4482ac34563f8dd58b75e4fedf19c827f1678cd1067296af1b9
+Contract: ConsorcioVotes | Function: adjudicarUnidad(uint256,address,uint256) [UF 103]
+Block: 11986722 | Gas: 820731
+
+✅  [Success] Hash: 0xdef7b696d894fe7932e0220b0c54d5cf09529f40e0f7de74652d55aed7c43c07
+Contract: ConsorcioTimelock | Function: configurarYSellarGobernanza(address)
+Block: 11986723 | Gas: 581800
+
+✅  [Success] Hash: 0xd87bf44f4e337d96b69adf3ce506ff41a94ae2c877c114014ecf33f01ec3c432
+Contract: ConsorcioVotes | Function: adjudicarUnidad(uint256,address,uint256) [UF 104]
+Block: 11986724 | Gas: 820731
+
+✅  [Success] Hash: 0x3dd5c59935b761d590382655d7f17a3b747dc6643455c04375faed4747296289
+Contract: ConsorcioVotes | Function: transferOwnership(address)
+Block: 11986725 | Gas: 129897
+
+✅  [Success] Hash: 0xae4442f9d72a5543378a0eaa0ee8acca4a7ba9223ad32e420360cb86dbd62041
+Contract: ConsorcioObras
+Contract Address: 0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596
+Block: 11986726 | Gas: 13661844
+
+✅  [Success] Hash: 0xe83093263db6234d37c303a9e74adf69e07f80057165969ff9d2c8a6b5b68e31
+Contract: ConsorcioObras | Function: pagarExpensas(uint256,string) [0.001 ETH - UF 101]
+Block: 11986727 | Gas: 254600
+
+✅  [Success] Hash: 0x6b23753c0b3dec12473c162f07c1856e39ad48fd36b4b2076d862700184cfdc3
+Contract: ConsorcioGovernor | Function: propose(address[],uint256[],bytes[],string)
+Block: 11986728 | Gas: 159499
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+All (4) contracts were verified!
+  1. ConsorcioVotes (0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878): Pass - Verified (GUID: vigc4uwxjggeezg1czfl6m63meq8iy3g2gsrmh8xsdzkvgpp9r)
+  2. ConsorcioTimelock (0xd94CeD89b4d121B4053A74C88b1309d0Bf690297): Pass - Verified (GUID: ishv1zceqq4nfldzdyhrejshutnl7vqazsfcz7fjn8tiu4yd7w)
+  3. ConsorcioGovernor (0x6D38403399110487B0654fD6Eb029920739973b2): Pass - Verified (GUID: 4q8icyaa18bryjrwpd6c17ip37sznrk9eatashqg2q688xa8sq)
+  4. ConsorcioObras (0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596): Pass - Verified (GUID: ej8vvw7kfv71lam3dprr38pqab1af6ykgpc229evthska2evm6)
+--------------------------------------------------------------------------------
+Estado: EXITOSO (12 transacciones confirmadas en Sepolia y 4 contratos verificados en Etherscan)
+================================================================================
+
+================================================================================
+[ETAPA 5 - 2026-10-24] INTERACCION EN VIVO DESDE EL FRONTEND REACT + METAMASK (SEPOLIA)
+Directorio: /workspace/TP_v2/frontend
+Red: Ethereum Sepolia (Chain ID: 11155111)
+Billetera del Usuario / Vecino / Contratista: 0x3b9DE69C652f54582155372d45bB176e810eEEA1
+
+Transacciones interactivas ejecutadas y confirmadas en Sepolia Etherscan:
+  1. pagarExpensas(102, "Expensas Noviembre Lote 102") [0.001 ETH]:
+     Hash: 0x6b76c0905b7efcce99d55a1f80bb359d8f74882042d563b65681f9725106b544
+     Bloque: 11987010 | Estado: 1 (Exitoso) | Saldo Vault: 0.0020 ETH
+
+  2. propose(targets, values, calldatas, desc) [Obra #1 - Presupuesto: 0.0005 ETH]:
+     Hash: 0x93f470ec01cb0474b0d6f8a6e4ec0853fc74c2c159e6d7b625dbe37637bc5bd1
+     Bloque: 11987019 | Estado: 1 (Exitoso) | Proposal ID: 0x79cf35c219271a1a7fb8cf3bb827f8ee890763e93e1503a4bb962ff53a58e15e
+
+  3. castVote(proposalId, 1) [Voto A Favor]:
+     Hash: 0xb41e39452f2d4e0199f130f8c7513d854e480208c5f43ef7ade46d50ce130e6a
+     Bloque: 11987024 | Estado: 1 (Exitoso) | Peso: 2 votos (UF 101+102) = 50% Quórum Estatutario alcanzado
+
+  4. queue(targets, values, calldatas, descriptionHash) [Encolado en Timelock]:
+     Hash: 0x99d682963ffa3e344f55269e7214ae956c3eefb90f3fa906d28c6c67568c32ea
+     Bloque: 11987102 | Estado: 1 (Exitoso) | Estado Propuesta: 5 (Queued)
+
+  5. execute(targets, values, calldatas, descriptionHash) [Ejecución y Pago Hito 1 (30%)]:
+     Hash: 0x5871a6a3122db3dd2d876fa5d8e0731e6fb99a883cd65e2a14b42998be852af9
+     Bloque: 11987118 | Estado: 1 (Exitoso) | Monto transferido: 0.00015 ETH | Estado Obra #1: 2 (Hito 1 Liberado)
+
+  6. rendirCuentasHito1(1, "ipfs://QmY4UREPaphptTcmYy5Kdgt9VXYUzXaeE5UwZYtae5bmPv"):
+     Hash: 0x9a9dc9c8fe338e027b230f4b42e5b19656bed6482e9fdc84029af5120c3cee64
+     Bloque: 11987122 | Estado: 1 (Exitoso) | Estado Obra #1: 3 (Hito 1 Rendido en IPFS)
+
+Estado: EXITOSO (Ciclo de vida completo verificado on-chain en Ethereum Sepolia)
+================================================================================

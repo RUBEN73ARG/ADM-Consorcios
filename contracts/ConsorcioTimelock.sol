@@ -19,9 +19,15 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
  *      para mitigar el riesgo de centralización post-despliegue: en una sola transacción
  *      asigna los roles al `ConsorcioGovernor` y revoca el `DEFAULT_ADMIN_ROLE` del deployer.
  *
+ *      [CORRECCIÓN DOCENTE - PUNTO 5] (Ventana de seguridad durante `minDelay`):
+ *      Al otorgar `CANCELLER_ROLE` al contrato `ConsorcioGovernor`, este puede invocar
+ *      `_timelock.cancel(id)` a través de `ConsorcioGovernor.cancelarPropuestaEnCola(...)`
+ *      mientras una propuesta aprobada se encuentra en estado `Queued` esperando que transcurra
+ *      el `minDelay`, materializando una ventana real de veto/emergencia antes de su ejecución.
+ *
  *      Roles relevantes heredados de `TimelockController` (AccessControl):
  *      - `PROPOSER_ROLE`: Exclusivo para `ConsorcioGovernor` (encola propuestas votadas).
- *      - `CANCELLER_ROLE`: Otorgado a `ConsorcioGovernor` para cancelar operaciones en cola.
+ *      - `CANCELLER_ROLE`: Otorgado a `ConsorcioGovernor` para cancelar operaciones en cola (`Queued`).
  *      - `EXECUTOR_ROLE`: Configurado en `address(0)` (y `ConsorcioGovernor`) para ejecución abierta tras `minDelay`.
  *      - `DEFAULT_ADMIN_ROLE`: Usado solo durante el despliegue y sellado atómicamente para autonomía total.
  */

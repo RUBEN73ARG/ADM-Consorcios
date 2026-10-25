@@ -1,0 +1,39 @@
+'forge clean' running (wd: /workspace/TP_v2)
+'forge config --json' running
+'forge build --build-info --deny never --skip ./test/** ./script/** --force' running (wd: /workspace/TP_v2)
+INFO:Detectors:
+Detector: missing-zero-check
+ConsorcioVotes.constructor(address).initialOwner (contracts/ConsorcioVotes.sol#124) lacks a zero-check on :
+		- registrador = initialOwner (contracts/ConsorcioVotes.sol#130)
+ConsorcioVotes.actualizarRegistrador(address).nuevoRegistrador (contracts/ConsorcioVotes.sol#143) lacks a zero-check on :
+		- registrador = nuevoRegistrador (contracts/ConsorcioVotes.sol#145)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
+INFO:Detectors:
+Detector: reentrancy-benign
+Reentrancy in ConsorcioObras._transferirETH(address,uint256) (contracts/ConsorcioObras.sol#765-773):
+	External calls:
+	- (exito,None) = destinatario.call{value: monto}() (contracts/ConsorcioObras.sol#766)
+	State variables written after the call(s):
+	- pagosPendientesContratista[destinatario] = nuevoPendiente (contracts/ConsorcioObras.sol#769)
+	- totalPagosPendientesContratistas += monto (contracts/ConsorcioObras.sol#770)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+INFO:Detectors:
+Detector: dead-code
+ConsorcioVotes._increaseBalance(address,uint128) (contracts/ConsorcioVotes.sol#281-283) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+Detector: low-level-calls
+Low level call in ConsorcioObras.retirarPagoContratista(address) (contracts/ConsorcioObras.sol#601-621):
+	- (exito,None) = receptor.call{value: monto}() (contracts/ConsorcioObras.sol#619)
+Low level call in ConsorcioObras._transferirETH(address,uint256) (contracts/ConsorcioObras.sol#765-773):
+	- (exito,None) = destinatario.call{value: monto}() (contracts/ConsorcioObras.sol#766)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Detectors:
+Detector: missing-inheritance
+ConsorcioVotes (contracts/ConsorcioVotes.sol#30-284) should inherit from IConsorcioVotes (contracts/ConsorcioObras.sol#12-14)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-inheritance
+INFO:Detectors:
+Detector: naming-convention
+Function ConsorcioVotes.CLOCK_MODE() (contracts/ConsorcioVotes.sol#251-253) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Slither:. analyzed (57 contracts with 102 detectors), 8 result(s) found

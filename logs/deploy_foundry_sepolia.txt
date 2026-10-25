@@ -1,0 +1,222 @@
+No files changed, compilation skipped
+Script ran successfully.
+
+== Return ==
+votes: contract ConsorcioVotes 0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878
+timelock: contract ConsorcioTimelock 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+governor: contract ConsorcioGovernor 0x6D38403399110487B0654fD6Eb029920739973b2
+obras: contract ConsorcioObras 0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596
+proposalId: uint256 14482728348493155502191935859541702641564493741427847260982949677415526180625 [1.448e76]
+
+== Logs ==
+  ==================================================================
+  DESPLIEGUE CANONICO V2 ADM-CONSORCIOS (ConsorcioDAO) EN SEPOLIA
+  Deployer / Vecino Lote 101 / Registrador / Guardian: 0x3b9DE69C652f54582155372d45bB176e810eEEA1
+  ==================================================================
+  1. ConsorcioVotes desplegado en:    0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878
+  2a. Unidad Funcional 101 adjudicada a deployer
+  3. ConsorcioTimelock desplegado en: 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+  2b. Unidad Funcional 102 adjudicada a deployer
+  4. ConsorcioGovernor desplegado en: 0x6D38403399110487B0654fD6Eb029920739973b2
+  2c. Unidad Funcional 103 adjudicada a Vecino 103
+  5. Timelock sellado atomicamente: DEFAULT_ADMIN_ROLE revocado para deployer
+  2d. Unidad Funcional 104 adjudicada a Vecino 104 (Total 4 unidades)
+  6. Ownable2Step iniciado: pendingOwner de ConsorcioVotes = 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+  7. ConsorcioObras desplegado en:    0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596
+  8. Expensas abonadas al Vault por Lote 101 (wei): 1000000000000000
+  9. Propuesta de Obra creada en ConsorcioGovernor! Proposal ID: 14482728348493155502191935859541702641564493741427847260982949677415526180625
+
+## Setting up 1 EVM.
+
+==========================
+
+Chain 11155111
+
+Estimated gas price: 0.001000036 gwei
+
+Estimated total gas used for script: 99690174
+
+Estimated amount required: 0.000099693762846264 ETH
+
+==========================
+
+##### sepolia
+✅  [Success] Hash: 0xb310812606a6f1e89789912962aef08f1235a0b3b51493621643adae7d8cc8bd
+Contract: ConsorcioVotes
+Contract Address: 0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878
+Block: 11986717
+Paid: 0.024546069294552828 ETH (16364046 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xd9c5f68c1b3549749a9d6d2ecdc6a4207c4a34b1c3a2416fdf6a3f18dfc28991
+Contract: ConsorcioVotes
+Function: adjudicarUnidad(uint256,address,uint256)
+Block: 11986718
+Paid: 0.001373949016487388 ETH (915966 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xc4d4ed44e5d5c06678ea45edc97ef11f713bab0391ea04f8c7eaeef74353f6ee
+Contract: ConsorcioTimelock
+Contract Address: 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297
+Block: 11986719
+Paid: 0.016717441700609298 ETH (11144961 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xa15d2bf9f059ad680d4f90a19de74afbb3bb4f1b72357276e50e10303ad599a2
+Contract: ConsorcioVotes
+Function: adjudicarUnidad(uint256,address,uint256)
+Block: 11986720
+Paid: 0.000775084509301014 ETH (516723 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0x691311c57b86c5e438c765eae6544e562a369170f963c00ee9737f29f669cedf
+Contract: ConsorcioGovernor
+Contract Address: 0x6D38403399110487B0654fD6Eb029920739973b2
+Block: 11986721
+Paid: 0.041726282000715378 ETH (27817521 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xe0f0bf878522b4482ac34563f8dd58b75e4fedf19c827f1678cd1067296af1b9
+Contract: ConsorcioVotes
+Function: adjudicarUnidad(uint256,address,uint256)
+Block: 11986722
+Paid: 0.001231096514773158 ETH (820731 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xdef7b696d894fe7932e0220b0c54d5cf09529f40e0f7de74652d55aed7c43c07
+Contract: ConsorcioTimelock
+Function: configurarYSellarGobernanza(address)
+Block: 11986723
+Paid: 0.0008727000104724 ETH (581800 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xd87bf44f4e337d96b69adf3ce506ff41a94ae2c877c114014ecf33f01ec3c432
+Contract: ConsorcioVotes
+Function: adjudicarUnidad(uint256,address,uint256)
+Block: 11986724
+Paid: 0.001231096514773158 ETH (820731 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0x3dd5c59935b761d590382655d7f17a3b747dc6643455c04375faed4747296289
+Contract: ConsorcioVotes
+Function: transferOwnership(address)
+Block: 11986725
+Paid: 0.000194845502338146 ETH (129897 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xae4442f9d72a5543378a0eaa0ee8acca4a7ba9223ad32e420360cb86dbd62041
+Contract: ConsorcioObras
+Contract Address: 0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596
+Block: 11986726
+Paid: 0.020492766245913192 ETH (13661844 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0xe83093263db6234d37c303a9e74adf69e07f80057165969ff9d2c8a6b5b68e31
+Contract: ConsorcioObras
+Function: pagarExpensas(uint256,string)
+Block: 11986727
+Paid: 0.0003819000045828 ETH (254600 gas * 1.500000018 gwei)
+
+
+##### sepolia
+✅  [Success] Hash: 0x6b23753c0b3dec12473c162f07c1856e39ad48fd36b4b2076d862700184cfdc3
+Contract: ConsorcioGovernor
+Function: propose(address[],uint256[],bytes[],string)
+Block: 11986728
+Paid: 0.000239248502870982 ETH (159499 gas * 1.500000018 gwei)
+
+✅ Sequence #1 on sepolia | Total Paid: 0.109782479817389742 ETH (73188319 gas * avg 1.500000018 gwei)
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+##
+Start verification for (4) contracts
+Start verifying contract `0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878` deployed on sepolia
+EVM version: cancun
+Compiler version: 0.8.24
+Optimizations:    200
+Constructor args: 0000000000000000000000003b9de69c652f54582155372d45bb176e810eeea1
+
+Submitting verification for [contracts/ConsorcioVotes.sol:ConsorcioVotes] 0x6FFc073B03E2Cd35d631d5e7dB13C50EAFf6c878.
+Submitted contract for verification:
+	Response: `OK`
+	GUID: `vigc4uwxjggeezg1czfl6m63meq8iy3g2gsrmh8xsdzkvgpp9r`
+	URL: https://sepolia.etherscan.io/address/0x6ffc073b03e2cd35d631d5e7db13c50eaff6c878
+Contract verification status:
+Response: `NOTOK`
+Details: `Pending in queue`
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+Start verifying contract `0xd94CeD89b4d121B4053A74C88b1309d0Bf690297` deployed on sepolia
+EVM version: cancun
+Compiler version: 0.8.24
+Optimizations:    200
+Constructor args: 000000000000000000000000000000000000000000000000000000000000003c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000003b9de69c652f54582155372d45bb176e810eeea100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+
+Submitting verification for [contracts/ConsorcioTimelock.sol:ConsorcioTimelock] 0xd94CeD89b4d121B4053A74C88b1309d0Bf690297.
+Submitted contract for verification:
+	Response: `OK`
+	GUID: `ishv1zceqq4nfldzdyhrejshutnl7vqazsfcz7fjn8tiu4yd7w`
+	URL: https://sepolia.etherscan.io/address/0xd94ced89b4d121b4053a74c88b1309d0bf690297
+Contract verification status:
+Response: `NOTOK`
+Details: `Pending in queue`
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+Start verifying contract `0x6D38403399110487B0654fD6Eb029920739973b2` deployed on sepolia
+EVM version: cancun
+Compiler version: 0.8.24
+Optimizations:    200
+Constructor args: 0000000000000000000000006ffc073b03e2cd35d631d5e7db13c50eaff6c878000000000000000000000000d94ced89b4d121b4053a74c88b1309d0bf690297000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000012c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000032
+
+Submitting verification for [contracts/ConsorcioGovernor.sol:ConsorcioGovernor] 0x6D38403399110487B0654fD6Eb029920739973b2.
+Submitted contract for verification:
+	Response: `OK`
+	GUID: `4q8icyaa18bryjrwpd6c17ip37sznrk9eatashqg2q688xa8sq`
+	URL: https://sepolia.etherscan.io/address/0x6d38403399110487b0654fd6eb029920739973b2
+Contract verification status:
+Response: `NOTOK`
+Details: `Pending in queue`
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+Start verifying contract `0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596` deployed on sepolia
+EVM version: cancun
+Compiler version: 0.8.24
+Optimizations:    200
+Constructor args: 000000000000000000000000d94ced89b4d121b4053a74c88b1309d0bf6902970000000000000000000000006ffc073b03e2cd35d631d5e7db13c50eaff6c878
+
+Submitting verification for [contracts/ConsorcioObras.sol:ConsorcioObras] 0x881bf4F2d3f92d2d955e81ecb4FF6444986cb596.
+Submitted contract for verification:
+	Response: `OK`
+	GUID: `ej8vvw7kfv71lam3dprr38pqab1af6ykgpc229evthska2evm6`
+	URL: https://sepolia.etherscan.io/address/0x881bf4f2d3f92d2d955e81ecb4ff6444986cb596
+Contract verification status:
+Response: `NOTOK`
+Details: `Pending in queue`
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+All (4) contracts were verified!
+
+Transactions saved to: /workspace/TP_v2/broadcast/Deploy.s.sol/11155111/run-latest.json
+
+Sensitive values saved to: /workspace/TP_v2/cache/Deploy.s.sol/11155111/run-latest.json
+

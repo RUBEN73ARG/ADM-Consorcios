@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {ConsorcioVotes} from "../src/ConsorcioVotes.sol";
+import {ConsorcioTimelock} from "../src/ConsorcioTimelock.sol";
+import {ConsorcioGovernor} from "../src/ConsorcioGovernor.sol";
+import {ConsorcioObras} from "../src/ConsorcioObras.sol";
+
+/**
+ * @title ConsorcioDAOEchidna
+ * @notice Harness de prueba de invariantes compatible con Echidna Fuzzer
+ * Valida propiedades booleanas (echidna_*) que jamas deben ser false.
+ */
+contract ConsorcioDAOEchidna {
+    ConsorcioVotes public token;
+    ConsorcioTimelock public timelock;
+    ConsorcioGovernor public governor;
+    ConsorcioObras public obras;
+
+    constructor() payable {
+        token = new ConsorcioVotes(address(this));
+        
+        address[] memory proposers = new address[](0);
+        address[] memory executors = new address[](0);
+        timelock = new ConsorcioTimelock(1 days, proposers, executors, address(this));
+
+        governor = new ConsorcioGovernor(
+            token,
+            timelock,
+            1,
+            50400,
+            0,
+            4
+        );
+
+        timelock.configurarYSellarGobernanza(address(governor));
+        token.transferOwnership(address(timelock));
+
+        obras = new ConsorcioObras(payable(address(timelock)));
+    }
+
+    /// @notice Invariante 1: Solvencia - El balance del contrato nunca es menor que lo registrado
+    function echidna_solvencia_balance() public view returns (bool) {
+        return address(obras).balance >= obras.totalRecaudadoExpensas();
+    }
+
+    /// @notice Invariante 2: Timelock sellado e inmutable para siempre
+    function echidna_timelock_sellado() public view returns (bool) {
+        return timelock.gobernanzaSellada();
+    }
+
+    /// @notice Invariante 3: Inmutabilidad de supply no autorizado
+    function echidna_total_supply_valido() public view returns (bool) {
+        return token.totalSupply() <= 500;
+    }
+
+    receive() external payable {}
+}

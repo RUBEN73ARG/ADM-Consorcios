@@ -1,0 +1,277 @@
+Compiling 81 files with Solc 0.8.24
+Solc 0.8.24 finished in 1.10s
+Compiler run successful with warnings:
+Warning (2072): Unused local variable.
+  --> script/SimularComunidadSepolia.s.sol:40:9:
+   |
+40 |         ConsorcioGovernor governor = ConsorcioGovernor(payable(GOVERNOR_ADDR));
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Warning (2018): Function state mutability can be restricted to view
+  --> script/SimularComunidadSepolia.s.sol:27:5:
+   |
+27 |     function run() external {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Analysing contracts...
+Running tests...
+
+Ran 12 tests for test/ConsorcioDAO.t.sol:ConsorcioDAOTest
+[PASS] testFuzz_CorreccionDocente1_QuorumLogicaSinDivisionPorCero(uint256,uint256) (runs: 256, μ: 1689320, ~: 1739211)
+[PASS] testFuzz_ReasignacionUnidadMantieneVotosYPropiedad(address) (runs: 256, μ: 177133, ~: 177133)
+[PASS] test_CorreccionDocente1_QuorumMinimo30Al50NuncaEsCeroNiApruebaConUnSoloVoto() (gas: 160483)
+[PASS] test_CorreccionDocente2_PullFallbackContratistaSinReceiveYRetiroExitoso() (gas: 438595)
+[PASS] test_CorreccionDocente3_PagarExpensasValidaUnidadAdjudicadaYPermiteInquilino() (gas: 83203)
+[PASS] test_CorreccionDocente5_CancelarPropuestaEnColaDuranteMinDelay() (gas: 400540)
+[PASS] test_CorreccionDocente6_DobleViaRegistradorYTimelockEnConsorcioVotes() (gas: 323649)
+[PASS] test_CrearEnDosPasosYCancelarDurantePausa() (gas: 285748)
+[PASS] test_FlujoCompletoObraTresHitos() (gas: 1475249)
+[PASS] test_Reverts_ConsorcioObras() (gas: 479962)
+[PASS] test_Reverts_ConsorcioTimelock_Y_ConsorcioGovernor() (gas: 3090954)
+[PASS] test_Reverts_ConsorcioVotes() (gas: 51482)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 19.56s (311.67ms CPU time)
+
+Ran 12 tests for test/ConsorcioDAOInvariants.t.sol:ConsorcioDAOInvariants
+[PASS] invariant_ContabilidadEspejo() (runs: 256, calls: 16384, reverts: 0)
+
+╭--------------+------------------------------+-------+---------+----------╮
+| Contract     | Selector                     | Calls | Reverts | Discards |
++==========================================================================+
+| ObrasHandler | act_adjudicarUnidad          | 1107  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aporteDirecto            | 1128  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aprobarObraYLiberarHito1 | 1097  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_cancelarObra             | 1145  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_crearObra                | 1108  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_intentoNoAutorizado      | 1067  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito1             | 1100  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito2             | 1060  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito3Final        | 1119  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_pagarExpensas            | 1083  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_reasignarUnidad          | 1089  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito1       | 1087  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito2       | 1082  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_togglePausa              | 1080  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_transferenciaSoulbound   | 1032  | 0       | 0        |
+╰--------------+------------------------------+-------+---------+----------╯
+
+[PASS] invariant_LiberadoNoSuperaPresupuesto() (runs: 256, calls: 16384, reverts: 0)
+
+╭--------------+------------------------------+-------+---------+----------╮
+| Contract     | Selector                     | Calls | Reverts | Discards |
++==========================================================================+
+| ObrasHandler | act_adjudicarUnidad          | 1107  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aporteDirecto            | 1128  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aprobarObraYLiberarHito1 | 1097  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_cancelarObra             | 1145  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_crearObra                | 1108  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_intentoNoAutorizado      | 1067  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito1             | 1100  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito2             | 1060  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito3Final        | 1119  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_pagarExpensas            | 1083  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_reasignarUnidad          | 1089  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito1       | 1087  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito2       | 1082  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_togglePausa              | 1080  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_transferenciaSoulbound   | 1032  | 0       | 0        |
+╰--------------+------------------------------+-------+---------+----------╯
+
+[PASS] invariant_QuorumNuncaEsCeroNiDividePorCero() (runs: 256, calls: 16384, reverts: 0)
+
+╭--------------+------------------------------+-------+---------+----------╮
+| Contract     | Selector                     | Calls | Reverts | Discards |
++==========================================================================+
+| ObrasHandler | act_adjudicarUnidad          | 1107  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aporteDirecto            | 1128  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aprobarObraYLiberarHito1 | 1097  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_cancelarObra             | 1145  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_crearObra                | 1108  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_intentoNoAutorizado      | 1067  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito1             | 1100  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito2             | 1060  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito3Final        | 1119  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_pagarExpensas            | 1083  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_reasignarUnidad          | 1089  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito1       | 1087  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito2       | 1082  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_togglePausa              | 1080  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_transferenciaSoulbound   | 1032  | 0       | 0        |
+╰--------------+------------------------------+-------+---------+----------╯
+
+[PASS] invariant_SolvenciaDelVault() (runs: 256, calls: 16384, reverts: 0)
+
+╭--------------+------------------------------+-------+---------+----------╮
+| Contract     | Selector                     | Calls | Reverts | Discards |
++==========================================================================+
+| ObrasHandler | act_adjudicarUnidad          | 1107  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aporteDirecto            | 1128  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aprobarObraYLiberarHito1 | 1097  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_cancelarObra             | 1145  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_crearObra                | 1108  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_intentoNoAutorizado      | 1067  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito1             | 1100  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito2             | 1060  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito3Final        | 1119  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_pagarExpensas            | 1083  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_reasignarUnidad          | 1089  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito1       | 1087  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito2       | 1082  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_togglePausa              | 1080  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_transferenciaSoulbound   | 1032  | 0       | 0        |
+╰--------------+------------------------------+-------+---------+----------╯
+
+[PASS] invariant_SupplyIgualAdjudicaciones() (runs: 256, calls: 16384, reverts: 0)
+
+╭--------------+------------------------------+-------+---------+----------╮
+| Contract     | Selector                     | Calls | Reverts | Discards |
++==========================================================================+
+| ObrasHandler | act_adjudicarUnidad          | 1107  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aporteDirecto            | 1128  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aprobarObraYLiberarHito1 | 1097  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_cancelarObra             | 1145  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_crearObra                | 1108  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_intentoNoAutorizado      | 1067  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito1             | 1100  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito2             | 1060  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito3Final        | 1119  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_pagarExpensas            | 1083  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_reasignarUnidad          | 1089  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito1       | 1087  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito2       | 1082  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_togglePausa              | 1080  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_transferenciaSoulbound   | 1032  | 0       | 0        |
+╰--------------+------------------------------+-------+---------+----------╯
+
+[PASS] invariant_TransferenciasSiguenDeshabilitadas() (runs: 256, calls: 16384, reverts: 0)
+
+╭--------------+------------------------------+-------+---------+----------╮
+| Contract     | Selector                     | Calls | Reverts | Discards |
++==========================================================================+
+| ObrasHandler | act_adjudicarUnidad          | 1107  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aporteDirecto            | 1128  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_aprobarObraYLiberarHito1 | 1097  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_cancelarObra             | 1145  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_crearObra                | 1108  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_intentoNoAutorizado      | 1067  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito1             | 1100  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito2             | 1060  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_liberarHito3Final        | 1119  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_pagarExpensas            | 1083  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_reasignarUnidad          | 1089  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito1       | 1087  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_rendirCuentasHito2       | 1082  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_togglePausa              | 1080  | 0       | 0        |
+|--------------+------------------------------+-------+---------+----------|
+| ObrasHandler | act_transferenciaSoulbound   | 1032  | 0       | 0        |
+╰--------------+------------------------------+-------+---------+----------╯
+
+[PASS] test_CorreccionDocente3_ExpensasSobreUnidadInexistenteRevierte() (gas: 33143)
+[PASS] test_FlujoCompleto_Governor_Timelock_Obras() (gas: 622581)
+[PASS] test_RendicionSoloAdminDeObra() (gas: 283367)
+[PASS] test_SelladoRevocaAdminYBloqueaReejecucion() (gas: 14677)
+[PASS] test_SoloTimelockLiberarHitos() (gas: 218694)
+[PASS] test_TransferenciaSoulboundRevierte() (gas: 19582)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 19.56s (94.86s CPU time)
+
+Ran 2 test suites in 19.57s (39.13s CPU time): 24 tests passed, 0 failed, 0 skipped (24 total tests)
+
+╭-----------------------------------+-------------------+------------------+----------------+-----------------╮
+| File                              | % Lines           | % Statements     | % Branches     | % Funcs         |
++=============================================================================================================+
+| contracts/ConsorcioGovernor.sol   | 86.96% (40/46)    | 90.20% (46/51)   | 50.00% (3/6)   | 71.43% (10/14)  |
+|-----------------------------------+-------------------+------------------+----------------+-----------------|
+| contracts/ConsorcioObras.sol      | 94.38% (151/160)  | 94.05% (158/168) | 58.33% (14/24) | 100.00% (21/21) |
+|-----------------------------------+-------------------+------------------+----------------+-----------------|
+| contracts/ConsorcioTimelock.sol   | 90.00% (9/10)     | 90.00% (9/10)    | 50.00% (1/2)   | 100.00% (1/1)   |
+|-----------------------------------+-------------------+------------------+----------------+-----------------|
+| contracts/ConsorcioVotes.sol      | 83.67% (41/49)    | 87.72% (50/57)   | 87.50% (7/8)   | 72.73% (8/11)   |
+|-----------------------------------+-------------------+------------------+----------------+-----------------|
+| test/ConsorcioDAO.t.sol           | 100.00% (2/2)     | 100.00% (1/1)    | 100.00% (0/0)  | 100.00% (1/1)   |
+|-----------------------------------+-------------------+------------------+----------------+-----------------|
+| test/ConsorcioDAOInvariants.t.sol | 100.00% (135/135) | 98.84% (170/172) | 93.75% (30/32) | 100.00% (18/18) |
+|-----------------------------------+-------------------+------------------+----------------+-----------------|
+| Total                             | 94.03% (378/402)  | 94.55% (434/459) | 76.39% (55/72) | 89.39% (59/66)  |
+╰-----------------------------------+-------------------+------------------+----------------+-----------------╯

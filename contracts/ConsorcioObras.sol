@@ -5,6 +5,15 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
+ * @notice Interfaz mínima para consultar en `ConsorcioVotes` si una unidad funcional existe y está adjudicada.
+ * @dev [CORRECCIÓN DOCENTE - PUNTO 3] Utilizada por `ConsorcioObras.pagarExpensas` para impedir pagos
+ *      imputados a unidades funcionales inexistentes o no empadronadas (`address(0)`).
+ */
+interface IConsorcioVotes {
+    function propietarioDeUnidad(uint256 unidadId) external view returns (address);
+}
+
+/**
  * @title ConsorcioObras
  * @author Equipo ConsorcioDAO - ETH Kipu Nivel 2
  * @notice Bóveda (Vault) de expensas y custodia por hitos (Milestone Escrow) para obras de espacio común.
@@ -28,6 +37,32 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
  *         de emergencia gobernado por el Timelock, validación de existencia de obra (`ObraInexistente`),
  *         bloqueo de direcciones circulares (`address(this)` / `timelock`), cacheo de variables de storage
  *         en memoria y bloques `unchecked` seguros para optimización de gas.
+ *
+ *      =========================================================================
+ *      CORRECCIONES DE MENTORÍA DOCENTE IMPLEMENTADAS EN ESTE CONTRATO:
+ *      =========================================================================
+ *      1. [CORRECCIÓN DOCENTE - PUNTO 2] (Esquema Pull / Híbrido para liberación de fondos al contratista):
+ *         - Observación: Si `administradorOContratista` es un contrato inteligente que rechaza transferencias
+ *           nativas de ETH (sin `receive()` payable o que revierte en su fallback), una transferencia `.call`
+ *           que revierte bloquea la ejecución de la propuesta en el Timelock (DoS sobre el hito).
+ *         - Solución implementada: Patrón Híbrido `Push + Pull Fallback` en `_transferirETH`. Si la transferencia
+ *           directa (`.call{value: monto}("")`) tiene éxito, el contratista recibe el ETH en el acto. Si falla
+ *           porque el contrato receptor rechaza ETH, la transacción del Timelock NO revierte: el hito avanza
+ *           normalmente y el importe queda reservado en `pagosPendientesContratista[destinatario]` (y contabilizado
+ *           en `totalPagosPendientesContratistas` para no afectar `saldoLibreDisponible()`). El contratista puede
+ *           luego cobrar sus fondos en cualquier momento invocando `retirarPagoContratista(address payable receptor)`
+ *           hacia una billetera que sí acepte ETH.
+ *
+ *      2. [CORRECCIÓN DOCENTE - PUNTO 3] (Validación de unidad adjudicada y pago por terceros en `pagarExpensas`):
+ *         - Observación: Revisar si tiene sentido que cualquier billetera pueda atribuir un pago a cualquier unidad
+ *           y documentar el motivo legal/operativo.
+ *         - Solución implementada: Se inyecta la referencia inmutable `consorcioVotes` y se valida on-chain que
+ *           `consorcioVotes.propietarioDeUnidad(unidadId) != address(0)` (revirtiendo con `UnidadNoAdjudicada` si
+ *           el lote no existe o no fue adjudicado). Se mantiene intencionalmente abierta la posibilidad de que
+ *           cualquier `msg.sender` abone las expensas de una unidad adjudicada porque en la operatoria real de
+ *           consorcios (Art. 881 CCyC - Pago por tercero / Locatario) las expensas suelen ser abonadas por el
+ *           inquilino, un familiar o una inmobiliaria, registrando simultáneamente el lote beneficiado
+ *           (`expensasPagadasPorUnidad[unidadId]`) y quién realizó el desembolso (`expensasPagadasPorVecino[msg.sender]`).
  */
 contract ConsorcioObras is ReentrancyGuard, Pausable {
     // =========================================================================
@@ -50,11 +85,21 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     /// @notice Dirección inmutable de la bóveda de retardo (`ConsorcioTimelock`), único rol con permiso de ejecución.
     address public immutable timelock;
 
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 3] Referencia inmutable al padrón `ConsorcioVotes` para validar unidades activas.
+    IConsorcioVotes public immutable consorcioVotes;
+
     /// @notice Contador incremental de obras registradas en el consorcio.
     uint256 public totalObras;
 
     /// @notice Total de fondos en wei comprometidos en obras activas pendientes de liberar.
     uint256 public fondosComprometidosEnObras;
+
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 2] Total de fondos en wei acreditados en custodia Pull para contratistas
+    ///         cuya recepción directa de ETH falló al liberarse un hito.
+    uint256 public totalPagosPendientesContratistas;
+
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 2] Saldo en wei disponible para retiro Pull por cada contratista.
+    mapping(address contratista => uint256 montoPendiente) public pagosPendientesContratista;
 
     /// @notice Estados secuenciales del ciclo de vida de una obra.
     enum EstadoObra {
@@ -111,6 +156,10 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     /// @notice Se lanza cuando el identificador de unidad funcional es igual a cero.
     error UnidadInvalida();
 
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 3] Se lanza cuando se intenta pagar expensas de una unidad funcional no adjudicada.
+    /// @param unidadId Identificador de la unidad funcional sin propietario en `ConsorcioVotes`.
+    error UnidadNoAdjudicada(uint256 unidadId);
+
     /// @notice Se lanza cuando se proporciona una dirección inválida (`address(0)`, este contrato o el Timelock).
     error DireccionInvalida();
 
@@ -119,7 +168,7 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     error ObraInexistente(uint256 obraId);
 
     /// @notice Se lanza cuando el saldo libre del Vault no alcanza para cubrir el presupuesto total de una nueva obra.
-    /// @param disponible Saldo libre actual en el Vault (descontando reservas de obras en curso).
+    /// @param disponible Saldo libre actual en el Vault (descontando reservas de obras en curso y pagos Pull).
     /// @param requerido Presupuesto total solicitado para la nueva obra.
     error FondosInsuficientesEnVault(uint256 disponible, uint256 requerido);
 
@@ -132,8 +181,12 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     /// @notice Se lanza cuando el administrador intenta presentar una rendición con un CID de IPFS vacío.
     error RendicionDeCuentasVacia();
 
-    /// @notice Se lanza cuando falla la transferencia nativa de ETH hacia el destinatario.
+    /// @notice Se lanza cuando falla la transferencia nativa de ETH durante un retiro explícito (`retirarPagoContratista`).
     error FalloTransferenciaETH();
+
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 2] Se lanza cuando un contratista sin saldo pendiente invoca `retirarPagoContratista`.
+    /// @param contratista Dirección que intentó retirar fondos sin tener pagos en custodia.
+    error SinPagosPendientes(address contratista);
 
     // =========================================================================
     // Eventos de Auditoría en la Blockchain
@@ -167,7 +220,7 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     /// @param obraId Identificador de la obra.
     /// @param numeroHito Número de etapa liberada (`1`, `2` o `3`).
     /// @param destinatario Billetera receptora de los fondos.
-    /// @param montoLiberado Importe transferido en este hito en wei.
+    /// @param montoLiberado Importe liberado en este hito en wei.
     /// @param acumuladoLiberado Importe total acumulado liberado para esta obra hasta el momento.
     event HitoLiberado(
         uint256 indexed obraId,
@@ -175,6 +228,27 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
         address indexed destinatario,
         uint256 montoLiberado,
         uint256 acumuladoLiberado
+    );
+
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 2] Se emite cuando la transferencia directa de ETH al contratista falla
+    ///         y el monto queda resguardado en custodia Pull para retiro posterior vía `retirarPagoContratista`.
+    /// @param contratista Dirección del contratista cuyos fondos quedaron en custodia.
+    /// @param monto Importe del hito acreditado en custodia en wei.
+    /// @param acumuladoPendiente Saldo total pendiente de retiro para ese contratista.
+    event PagoContratistaEnCustodia(
+        address indexed contratista,
+        uint256 monto,
+        uint256 acumuladoPendiente
+    );
+
+    /// @notice [CORRECCIÓN DOCENTE - PUNTO 2] Se emite cuando un contratista retira exitosamente sus fondos en custodia Pull.
+    /// @param contratista Dirección del contratista titular del crédito.
+    /// @param receptor Dirección payable donde el contratista decidió recibir el ETH.
+    /// @param monto Importe transferido en wei.
+    event PagoContratistaRetirado(
+        address indexed contratista,
+        address indexed receptor,
+        uint256 monto
     );
 
     /// @notice Se emite cuando el administrador presenta en la blockchain los comprobantes IPFS de un hito.
@@ -214,12 +288,14 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     // =========================================================================
 
     /**
-     * @notice Inicializa la bóveda de obras vinculándola de forma inmutable al `ConsorcioTimelock`.
+     * @notice Inicializa la bóveda de obras vinculándola de forma inmutable al `ConsorcioTimelock` y a `ConsorcioVotes`.
      * @param _timelock Dirección del contrato `ConsorcioTimelock`.
+     * @param _consorcioVotes Dirección del contrato `ConsorcioVotes` para validar unidades adjudicadas.
      */
-    constructor(address _timelock) {
-        if (_timelock == address(0)) revert DireccionInvalida();
+    constructor(address _timelock, address _consorcioVotes) {
+        if (_timelock == address(0) || _consorcioVotes == address(0)) revert DireccionInvalida();
         timelock = _timelock;
+        consorcioVotes = IConsorcioVotes(_consorcioVotes);
     }
 
     // =========================================================================
@@ -247,16 +323,24 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     // =========================================================================
 
     /**
-     * @notice Permite a un propietario o inquilino pagar las expensas de su unidad funcional/lote.
-     * @dev Canal oficial de pago de expensas que acredita tanto `expensasPagadasPorUnidad[unidadId]`
-     *      como `expensasPagadasPorVecino[msg.sender]`. El campo `unidadId` es declarativo on-chain y
-     *      se cruza en el frontend/indexador con `ConsorcioVotes.propietarioDeUnidad(unidadId)` (CD-04).
-     * @param unidadId Número de departamento o lote (mayor a 0, ej. 101).
+     * @notice Permite a un propietario, inquilino o tercero autorizado pagar las expensas de una unidad funcional/lote.
+     * @dev [CORRECCIÓN DOCENTE - PUNTO 3]:
+     *      1. Valida on-chain que la unidad funcional exista y esté adjudicada en el padrón oficial
+     *         (`consorcioVotes.propietarioDeUnidad(unidadId) != address(0)`), evitando pagos huérfanos a lotes inexistentes.
+     *      2. Permite intencionalmente que cualquier billetera (`msg.sender`) abone la expensa de una unidad adjudicada,
+     *         dado que en la práctica consorcial (Art. 881 CCyC - Pago por tercero / Locatario) las expensas ordinarias
+     *         son habitualmente pagadas por inquilinos, familiares o administradores de alquileres.
+     *      3. Acredita tanto `expensasPagadasPorUnidad[unidadId]` (estado de cuenta del departamento) como
+     *         `expensasPagadasPorVecino[msg.sender]` (recibo histórico del pagador).
+     * @param unidadId Número de departamento o lote adjudicado (mayor a 0, ej. 101).
      * @param concepto Detalle del período abonado (ej. "Expensas Ordinarias Octubre 2026").
      */
     function pagarExpensas(uint256 unidadId, string calldata concepto) external payable whenNotPaused {
         if (unidadId == 0) revert UnidadInvalida();
         if (msg.value == 0) revert MontoInvalido();
+        if (consorcioVotes.propietarioDeUnidad(unidadId) == address(0)) {
+            revert UnidadNoAdjudicada(unidadId);
+        }
 
         expensasPagadasPorUnidad[unidadId] += msg.value;
         expensasPagadasPorVecino[msg.sender] += msg.value;
@@ -265,7 +349,7 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Permite recibir transferencias directas de ETH al Vault como canal de aportes genérico.
+     * @notice Permite recibir transferencias directas de ETH al Vault como canal de aportes extraordinarios genéricos.
      * @dev El pago formal de expensas por lote exige invocar `pagarExpensas(unidadId, concepto)`.
      *      Las transferencias directas a `receive()` acreditan `expensasPagadasPorVecino[msg.sender]`
      *      y emiten `unidadId = 0` en el evento `ExpensasRecibidas` (CD-13).
@@ -503,16 +587,51 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     }
 
     // =========================================================================
+    // 5. [CORRECCIÓN DOCENTE - PUNTO 2] Retiro Pull de Pagos en Custodia
+    // =========================================================================
+
+    /**
+     * @notice Permite a un contratista retirar los fondos que quedaron en custodia Pull cuando su dirección
+     *         rechazó la transferencia directa de ETH al liberarse un hito.
+     * @dev [CORRECCIÓN DOCENTE - PUNTO 2] Aplica estrictamente Checks-Effects-Interactions (CEI) y `nonReentrant`.
+     *      Permite indicar una dirección `receptor` (por ejemplo, una EOA operativa del contratista si el
+     *      contratista registrado en la obra era un contrato inteligente sin función `receive()`).
+     * @param receptor Dirección payable donde se acreditará el ETH retirado.
+     */
+    function retirarPagoContratista(address payable receptor) external nonReentrant {
+        if (receptor == address(0) || receptor == address(this) || receptor == timelock) {
+            revert DireccionInvalida();
+        }
+
+        uint256 monto = pagosPendientesContratista[msg.sender];
+        if (monto == 0) revert SinPagosPendientes(msg.sender);
+
+        // Effects
+        pagosPendientesContratista[msg.sender] = 0;
+        unchecked {
+            // Seguro: `totalPagosPendientesContratistas` es la suma exacta de `pagosPendientesContratista`.
+            totalPagosPendientesContratistas -= monto;
+        }
+
+        emit PagoContratistaRetirado(msg.sender, receptor, monto);
+
+        // Interactions
+        (bool exito, ) = receptor.call{value: monto}("");
+        if (!exito) revert FalloTransferenciaETH();
+    }
+
+    // =========================================================================
     // Funciones de Consulta (Views & Pure)
     // =========================================================================
 
     /**
-     * @notice Devuelve el saldo libre del Vault (descontando los fondos ya reservados para obras en curso).
+     * @notice Devuelve el saldo libre del Vault (descontando los fondos ya reservados para obras en curso
+     *         y los pagos en custodia Pull pendientes de retiro por contratistas).
      * @return Saldo disponible en wei para comprometer en nuevas obras.
      */
     function saldoLibreDisponible() public view returns (uint256) {
         uint256 balanceActual = address(this).balance;
-        uint256 comprometido = fondosComprometidosEnObras;
+        uint256 comprometido = fondosComprometidosEnObras + totalPagosPendientesContratistas;
         if (balanceActual <= comprometido) return 0;
         unchecked {
             return balanceActual - comprometido;
@@ -556,10 +675,9 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     /**
      * @dev Registra una nueva obra en storage y reserva el 100% de su presupuesto en `fondosComprometidosEnObras`.
      *      Valida que `administradorOContratista` no sea `address(0)`, `address(this)` ni `timelock`.
-     *      El destinatario (`administradorOContratista`) debe ser una EOA o contrato capaz de recibir ETH nativo (CD-06).
      * @param nombre Título de la obra.
      * @param descripcion Alcance técnico y plazos.
-     * @param administradorOContratista Billetera responsable de la obra (debe aceptar transferencias ETH).
+     * @param administradorOContratista Billetera responsable de la obra.
      * @param presupuestoTotal Presupuesto total aprobado en wei.
      * @return obraId Identificador único asignado a la obra.
      */
@@ -635,13 +753,22 @@ contract ConsorcioObras is ReentrancyGuard, Pausable {
     }
 
     /**
-     * @dev Realiza la transferencia segura de ETH nativo mediante `.call` verificando el resultado booleano.
-     *      El destinatario debe ser una EOA o cuenta inteligente con `receive`/`fallback` payable (CD-06).
-     * @param destinatario Dirección receptora del pago.
-     * @param monto Cantidad en wei a transferir.
+     * @dev [CORRECCIÓN DOCENTE - PUNTO 2] Esquema Híbrido `Push + Pull Fallback` para liberación de fondos:
+     *      Intenta transferir el ETH directamente al contratista mediante `.call{value: monto}("")`.
+     *      Si el destinatario es un contrato inteligente que rechaza ETH (no tiene `receive()` payable o revierte),
+     *      en lugar de revertir toda la ejecución del Timelock y bloquear el avance de la obra, acredita el
+     *      importe en `pagosPendientesContratista[destinatario]` y `totalPagosPendientesContratistas`, emitiendo
+     *      `PagoContratistaEnCustodia` para que el contratista pueda retirarlo luego vía `retirarPagoContratista`.
+     * @param destinatario Dirección receptora del pago del hito.
+     * @param monto Cantidad en wei a transferir o dejar en custodia Pull.
      */
     function _transferirETH(address payable destinatario, uint256 monto) internal {
         (bool exito, ) = destinatario.call{value: monto}("");
-        if (!exito) revert FalloTransferenciaETH();
+        if (!exito) {
+            uint256 nuevoPendiente = pagosPendientesContratista[destinatario] + monto;
+            pagosPendientesContratista[destinatario] = nuevoPendiente;
+            totalPagosPendientesContratistas += monto;
+            emit PagoContratistaEnCustodia(destinatario, monto, nuevoPendiente);
+        }
     }
 }
